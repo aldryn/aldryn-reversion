@@ -12,8 +12,9 @@ fields and/or django-cms placeholder fields.
 Note: ::
 
     django-parler is optional and is not required. However, if your model is
-    translated, aldryn-reversion will take translations and the resulting
-    internal Parler translation cache into consideration when making revisions.
+    translated with Parler, aldryn-reversion will take translations and the
+    resulting internal Parler translation cache into consideration when making
+    revisions.
 
 
 --------------------
