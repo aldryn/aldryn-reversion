@@ -13,7 +13,13 @@ from django.db.models.signals import post_save
 from cms.models.pluginmodel import CMSPlugin
 import reversion
 from reversion.revisions import VersionAdapter
-from parler import cache
+
+# We would like this to not depend on Parler, but still support if it is
+# available.
+try:
+    from parler import cache
+except:
+    pass
 
 
 def create_revision_with_placeholders(instance, revision_manager=None,
@@ -54,18 +60,20 @@ class TranslatableVersionAdapterMixin(object):
     def __init__(self, model):
         super(TranslatableVersionAdapterMixin, self).__init__(model)
 
-        # Register the translation model to be tracked as well, by following
-        # all placeholder fields, if any.
-        root_model = model._parler_meta.root_model
-        self.revision_manager.register(root_model)
+        # If the model is translated with django-parler, register the
+        # translation model to be tracked as well, by following all placeholder
+        # fields, if any.
+        if hasattr(model, '_parler_meta'):
+            root_model = model._parler_meta.root_model
+            self.revision_manager.register(root_model)
 
-        # Also add the translations to the models to follow.
-        self.follow = list(self.follow) + [model._parler_meta.root_rel_name]
+            # Also add the translations to the models to follow.
+            self.follow = list(self.follow) + [model._parler_meta.root_rel_name]
 
-        # And make sure that when we revert them, we update the translations
-        # cache (this is normally done in the translation `save_base` method,
-        # but it is not called when reverting changes).
-        post_save.connect(self._update_cache, sender=root_model)
+            # And make sure that when we revert them, we update the translations
+            # cache (this is normally done in the translation `save_base`
+            # method, but it is not called when reverting changes).
+            post_save.connect(self._update_cache, sender=root_model)
 
     def _update_cache(self, sender, instance, raw, **kwargs):
         """Update the translations cache when restoring from a revision."""
@@ -88,10 +96,11 @@ class PlaceholderVersionAdapterMixin(object):
             post_save.connect(self._add_plugins_to_revision, sender=model)
 
     def _add_plugins_to_revision(self, sender, instance, **kwargs):
-        """Manually add plugins to the revision.
+        """
+        Manually add plugins to the revision.
 
         This method is an updated and adapter version of
-        https://github.com/divio/django-cms/blob/develop/cms/utils/helpers.py#L34
+        http://github.com/divio/django-cms/blob/develop/cms/utils/helpers.py#L34
         but instead of working on pages, works on models with placeholder
         fields.
         """
@@ -120,6 +129,6 @@ class ContentEnabledVersionAdapter(TranslatableVersionAdapterMixin,
     pass
 
 
-version_controlled_content = partial(
-    reversion.register, adapter_cls=ContentEnabledVersionAdapter,
+version_controlled_content = partial(reversion.register,
+    adapter_cls=ContentEnabledVersionAdapter,
     revision_manager=reversion.default_revision_manager)

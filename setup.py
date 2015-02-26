@@ -3,7 +3,6 @@ from setuptools import setup, find_packages
 from aldryn_reversion import __version__
 
 REQUIREMENTS = [
-    'django-parler',
     'django-cms>=3.0.9',
     'django-reversion>=1.8.2,<1.9',
 ]
@@ -38,7 +37,6 @@ setup(
     test_suite="test_settings.run",
     dependency_links=[
         'git+https://github.com/yakky/django-cms@future/integration#egg=django-cms-3.0.90a3',
-        'django-parler',
         'django-reversion',
     ],
 )
