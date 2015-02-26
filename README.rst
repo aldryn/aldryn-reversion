@@ -71,7 +71,9 @@ include placeholders that should be versioned like so: ::
 Options
 ~~~~~~~
 
-    Document 'follow_placeholders' Admin class property is introduced and is, by
-    default, True. If set to False in the implmementing class allows the class
-    to implement reversion, but without considering the placeholder field(s) it
-    contains.
+    ``follow_placeholders`` ::
+
+        Document 'follow_placeholders' Admin class property is introduced and is, by
+        default, True. If set to False in the implmementing class allows the class
+        to implement reversion, but without considering the placeholder field(s) it
+        contains.
