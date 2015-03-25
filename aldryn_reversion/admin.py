@@ -79,10 +79,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         super(VersionedPlaceholderAdminMixin, self).post_edit_plugin(
             request, plugin)
         comment = u'Edited plugin #{0.id}: {0!s}'.format(plugin)
-        try:
-            self._create_revision(plugin, request.user, comment)
-        except:
-            pass
+        self._create_revision(plugin, request.user, comment)
 
     def post_move_plugin(self, request, source_placeholder, target_placeholder,
                          plugin):
