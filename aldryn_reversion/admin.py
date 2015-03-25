@@ -25,10 +25,29 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
                                      reversion.VersionAdmin):
     revision_confirmation_template = 'aldryn_reversion/confirm_reversion.html'
 
+    def add_plugin(self, request):
+        with transaction.atomic():
+            with reversion.create_revision():
+                return super(VersionedPlaceholderAdminMixin, self).add_plugin(
+                    request)
+
     def edit_plugin(self, request, plugin_id):
         with transaction.atomic():
             with reversion.create_revision():
                 return super(VersionedPlaceholderAdminMixin, self).edit_plugin(
+                    request, plugin_id)
+
+    def move_plugin(self, request):
+        with transaction.atomic():
+            with reversion.create_revision():
+                return super(VersionedPlaceholderAdminMixin, self).move_plugin(
+                    request)
+
+    def delete_plugin(self, request, plugin_id):
+        with transaction.atomic():
+            with reversion.create_revision():
+                return super(
+                    VersionedPlaceholderAdminMixin, self).delete_plugin(
                     request, plugin_id)
 
     def _create_revision(self, plugin, user=None, comment=None):
@@ -50,16 +69,25 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             reversion.set_comment(comment)
         create_revision_with_placeholders(obj)
 
+    def post_add_plugin(self, request, placeholder, plugin):
+        super(VersionedPlaceholderAdminMixin, self).post_add_plugin(
+            request, placeholder, plugin)
+        comment = u'Added plugin #{0.id}: {0!s}'.format(plugin)
+        self._create_revision(plugin, request.user, comment)
+
     def post_edit_plugin(self, request, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_edit_plugin(
             request, plugin)
         comment = u'Edited plugin #{0.id}: {0!s}'.format(plugin)
-        self._create_revision(plugin, request.user, comment)
+        try:
+            self._create_revision(plugin, request.user, comment)
+        except:
+            pass
 
     def post_move_plugin(self, request, source_placeholder, target_placeholder,
                          plugin):
         super(VersionedPlaceholderAdminMixin, self).post_move_plugin(
-            request, plugin)
+            request, source_placeholder, target_placeholder, plugin)
         comment = u'Moved plugin #{0.id}: {0!s}'.format(plugin)
         self._create_revision(plugin, request.user, comment)
 
