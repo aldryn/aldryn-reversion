@@ -5,15 +5,16 @@ from django.forms.widgets import CheckboxSelectMultiple
 from django.utils.encoding import force_text
 
 from .utils import (
-    get_translations_versions_for_object, get_conflict_fks_versions
+    get_translations_versions_for_object, get_conflict_fks_versions,
 )
 
 
 class RecoverObjectWithTranslationForm(forms.Form):
     translations = MultipleChoiceField(
+        required=True,
         widget=CheckboxSelectMultiple(),
-        help_text='Please select translations to restore.',
-        required=True)
+        label='Translations to restore:',
+        help_text='Please select translations which would be restored.')
 
     def __init__(self, *args, **kwargs):
         # prepare data for misc lookups
@@ -21,6 +22,7 @@ class RecoverObjectWithTranslationForm(forms.Form):
         self.obj = kwargs.pop('obj')
         self.obj_version = kwargs.pop('version')
         self.resolve_conflicts = kwargs.pop('resolve_conflicts')
+        self.placeholders = kwargs.pop('placeholders')
         # do not check object which needs to be recovered
         versions = self.revision.version_set.exclude(pk=self.obj_version.pk)
 
@@ -31,11 +33,9 @@ class RecoverObjectWithTranslationForm(forms.Form):
             translation_versions = get_translations_versions_for_object(
                 self.obj, self.revision, versions)
             # update form
-            self.fields['translations'] = MultipleChoiceField(
-                widget=CheckboxSelectMultiple(),
-                choices=[
-                    (translation_version.pk, force_text(translation_version))
-                    for translation_version in translation_versions])
+            choices = [(translation_version.pk, force_text(translation_version))
+                       for translation_version in translation_versions]
+            self.fields['translations'].choices = choices
         else:
             # do not show translations options if object is not translated
             self.fields.pop('translations')
@@ -53,13 +53,19 @@ class RecoverObjectWithTranslationForm(forms.Form):
         return data
 
     def save(self):
+        # restore placeholders
+        for placeholder_version in self.placeholders:
+            placeholder_version.revert()
+
         # if there is self.resolve_conflicts revert those objects to avoid
         # integrity errors, because user cannot do that form admin
-        # FIXME: Not tested yet
+        # assume that that was prepared for us in admin view
         for conflict in self.resolve_conflicts:
             conflict.revert()
+
         # revert main object
         self.obj_version.revert()
+
         # revert translations, if there is translations
         translations_pks = self.cleaned_data.get('translations', [])
         translation_versions = self.revision.version_set.filter(

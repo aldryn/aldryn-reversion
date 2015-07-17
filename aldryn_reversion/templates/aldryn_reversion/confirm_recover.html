@@ -21,26 +21,35 @@
         {% endblocktrans %}
     </p>
 
-    {% if non_resolvable_conflicts %}
-        <h3>Following conflicts would be recovered automaticly</h3>
+    {% if placeholders_to_restore %}
+        <p>{% trans 'Following placeholders were deleted and will be restored:' %}</p>
         <ul>
-            {% for conflict in non_resolvable_conflicts %}
-                <li>{{ conflict.content_type.name|capfirst }} #{{ conflict.object_id_int }}: {{ conflict.object_repr }}</li>
+            {% for placeholder_version in placeholders_to_restore %}
+                <li>{{ placeholder_version.content_type.name|capfirst }} #{{ placeholder_version.object_id_int }}: {{ placeholder_version.object_repr }}</li>
             {% endfor %}
         </ul>
     {% endif %}
 
     {% if conflicts %}
-        <h3>Warning there is conflicts</h3>
-        <p>Please restore required related objects first</p>
+        <h3>{% trans 'Warning there is conflicts' %}</h3>
+        <p>{% trans 'Please restore required related objects first:' %}</p>
         <ul>
-            {% for conflict_link in conflict_links %}
-                <li><a href="{{ conflict_link }}">{{ conflict_link }}</a></li>
+            {% for conflict in conflict_links %}
+                <li><a href="{{ conflict.link }}">{{ conflict.version.content_type.name|capfirst }} #{{ conflict.version.object_id_int }}: {{ conflict.version.object_repr }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}
 
     {% if restore_form %}
+        {% if non_resolvable_conflicts %}
+            <h3>{% trans 'Following conflicts would be recovered automatically' %}</h3>
+            <ul>
+                {% for conflict in non_resolvable_conflicts %}
+                    <li>{{ conflict.content_type.name|capfirst }} #{{ conflict.object_id_int }}: {{ conflict.object_repr }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
         <form action="" method="post">
             {% csrf_token %}
             {{ restore_form.as_p }}

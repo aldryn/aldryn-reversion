@@ -1,5 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.fields.related import ForeignKey
+import cms.models
 
 
 def get_translations_versions_for_object(obj, revision, versions=None):
@@ -42,7 +43,8 @@ def get_deleted_objects_versions(revision, versions=None,
         revision.version_set.all()
 
     if exclude is not None:
-        versions.exclude(**exclude)
+        versions = versions.exclude(**exclude)
+
     for version in versions:
         if version.object is None:
             # if there is no relation to object - it is delted
@@ -72,3 +74,81 @@ def get_conflict_fks_versions(obj, version, revision, exclude=None):
     conflict_fks_versions = get_deleted_objects_versions(
         revision, versions=versions_to_check, exclude=exclude)
     return conflict_fks_versions
+
+
+def object_has_placeholders(obj):
+    """
+    Returns True if given object has placeholder fields, False otherwise.
+    """
+    return cms.models.PlaceholderField in [type(field)
+                                           for field in obj._meta.fields]
+
+
+def get_placeholder_fields_names(obj):
+    return [field.name for field in obj._meta.fields
+            if type(field) == cms.models.PlaceholderField]
+
+
+def get_deleted_placeholders(revision):
+    """
+    Lookup for deleted placeholders for given revision
+    """
+    placeholder_ct = ContentType.objects.get_for_model(cms.models.Placeholder)
+    placeholder_versions = revision.version_set.filter(
+        content_type=placeholder_ct)
+    deleted_placeholders = get_deleted_objects_versions(
+        revision, versions=placeholder_versions)
+    return deleted_placeholders
+
+
+def get_deleted_placeholders_for_object(obj, revision):
+    """
+    Return deleted placeholders
+    """
+    if object_has_placeholders(obj):
+
+        placeholders_versions = get_deleted_placeholders(revision)
+        # add only placeholders that belong to this object
+        placeholders_pks = [getattr(obj, field_name).pk
+                            for field_name in get_placeholder_fields_names(obj)
+                            if getattr(obj, field_name, None) is not None]
+        return [placeholder_version
+                for placeholder_version in placeholders_versions
+                if placeholder_version.pk in placeholders_pks]
+    return []
+
+
+def resolve_conflicts(version, to_resolve):
+    """
+    Resolve conflicts recursively
+    """
+    obj = version.object_version.object
+    revision = version.revision
+
+    other_conflicts = get_conflict_fks_versions(obj, version, revision)
+
+    resolved_versions = [version]
+    deleted_placeholders = get_deleted_placeholders_for_object(obj, revision)
+    if deleted_placeholders:
+        resolved_versions += deleted_placeholders
+
+    # check for translations
+    translatable = hasattr(obj, 'translations')
+    if translatable:
+        translation_versions = get_translations_versions_for_object(
+            obj, revision)
+        resolved_versions += list(translation_versions)
+
+    # base case
+    if not to_resolve and not other_conflicts:
+        return resolved_versions
+
+    # if only found conflicts left
+    if other_conflicts and not to_resolve:
+        return resolved_versions + resolve_conflicts(other_conflicts[0],
+                                                     other_conflicts[1:])
+    # if we have a lot of work...
+    if other_conflicts and to_resolve:
+        # resolve our conflicts first
+        return resolved_versions + resolve_conflicts(
+            other_conflicts[0], other_conflicts[1:] + to_resolve)

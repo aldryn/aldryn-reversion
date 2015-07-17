@@ -20,7 +20,10 @@ from reversion.models import Version
 
 from .core import create_revision_with_placeholders
 from .forms import RecoverObjectWithTranslationForm
-from .utils import get_conflict_fks_versions
+from .utils import (
+    get_conflict_fks_versions, resolve_conflicts,
+    get_deleted_placeholders_for_object,
+)
 
 
 class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
@@ -172,30 +175,49 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
 
         # build urls to point user onto restore links for conflicts
         opts = self.model._meta
-        non_reversable_by_user = []
+        non_reversible_by_user = []
         conflicts_links_to_restore = []
         for fk_version in conflict_fks_versions:
             # try to point user to conflict recover views
-            # FIXME: make links human friendly
             try:
                 link = reverse(
                     'admin:{0}_{1}_recover'.format(
                         opts.app_label,
                         fk_version.object_version.object._meta.model_name),
                     args=[fk_version.pk])
+                link_dict = {
+                    'version': fk_version,
+                    'link': link
+                }
             except NoReverseMatch:
                 # if there is exception either model is not registered
                 # with VersionedPlaceholderAdminMixin or there is no admin
                 # for that model. In both cases we need to revert this object
-                # to avoid conflicts / integrety errors
-                non_reversable_by_user.append(fk_version)
+                # to avoid conflicts / integrity errors
+                non_reversible_by_user.append(fk_version)
             else:
-                conflicts_links_to_restore.append(link)
+                conflicts_links_to_restore.append(link_dict)
+
+        # check if we need to restore placeholder fields
+        object_placeholders = get_deleted_placeholders_for_object(obj, revision)
+        # FIXME: Not heavily tested yet
+        if len(non_reversible_by_user) > 1:
+            to_resolve = resolve_conflicts(
+                non_reversible_by_user[0], non_reversible_by_user[1:])
+            non_reversible_by_user = set(to_resolve)
+
+        # prepare form kwargs
+        restore_form_kwargs = {
+            'revision': revision,
+            'obj': obj,
+            'version': version,
+            'resolve_conflicts': non_reversible_by_user,
+            'placeholders': object_placeholders
+        }
 
         if request.method == "POST":
-            form = RecoverObjectWithTranslationForm(
-                request.POST, revision=revision, obj=obj, version=version,
-                resolve_conflicts=non_reversable_by_user)
+            form = RecoverObjectWithTranslationForm(request.POST,
+                                                    **restore_form_kwargs)
             # form.is_valid would perform validation against foreign keys
             if form.is_valid():
                 # form save will restore desired versions for object and its
@@ -227,9 +249,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
                 return HttpResponseRedirect(redirect_url)
         else:
             # populate form with regular data
-            form = RecoverObjectWithTranslationForm(
-                revision=revision, obj=obj, version=version,
-                resolve_conflicts=non_reversable_by_user)
+            form = RecoverObjectWithTranslationForm(**restore_form_kwargs)
         # FIXME: remove unused.
         context = {
             'object': obj,
@@ -238,7 +258,8 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             'revision_date': revision.date_created,
             'conflicts': bool(conflict_fks_versions),
             'conflict_links': conflicts_links_to_restore,
-            'non_resolvable_conflicts': non_reversable_by_user,
+            'non_resolvable_conflicts': non_reversible_by_user,
+            'placeholders_to_restore': object_placeholders,
             'versions': revision.version_set.order_by(
                 'content_type__name', 'object_id_int').all,
             'object_name': force_text(self.model._meta.verbose_name),
@@ -257,7 +278,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             'original': obj,
         }
         # if there is no conflicts - add form to context.
-        if not conflict_fks_versions:
+        if not conflicts_links_to_restore:
             context['restore_form'] = form
         return render_to_response(self.recover_confirmation_template,
                                   context, RequestContext(request))
