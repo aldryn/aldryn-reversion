@@ -161,8 +161,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
                                       context, RequestContext(request))
 
     @transaction.atomic
-    def recover_view(self, request, version_id,
-                      extra_context=None):
+    def recover_view(self, request, version_id, extra_context=None):
         if not self.has_change_permission(request):
             raise PermissionDenied()
 
