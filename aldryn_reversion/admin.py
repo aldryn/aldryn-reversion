@@ -30,6 +30,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
                                      reversion.VersionAdmin):
     revision_confirmation_template = 'aldryn_reversion/confirm_reversion.html'
     recover_confirmation_template = 'aldryn_reversion/confirm_recover.html'
+
     def add_plugin(self, request):
         with transaction.atomic():
             with reversion.create_revision():
@@ -201,7 +202,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         # check if we need to restore placeholder fields
         object_placeholders = get_deleted_placeholders_for_object(obj, revision)
         # FIXME: Not heavily tested yet
-        if len(non_reversible_by_user) > 1:
+        if len(non_reversible_by_user) > 0:
             to_resolve = resolve_conflicts(
                 non_reversible_by_user[0], non_reversible_by_user[1:])
             non_reversible_by_user = set(to_resolve)
@@ -240,7 +241,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
                     args=(pk_value,),
                     current_app=self.admin_site.name
                 )
-                # FIXME: Check if there is next parameter and redirect to
+                # TODO: Check if there is next parameter and redirect to
                 # next, for cases of conflict solving.
                 redirect_url = add_preserved_filters({
                     'preserved_filters': preserved_filters,
@@ -250,7 +251,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         else:
             # populate form with regular data
             form = RecoverObjectWithTranslationForm(**restore_form_kwargs)
-        # FIXME: remove unused.
+
         context = {
             'object': obj,
             'version': version,

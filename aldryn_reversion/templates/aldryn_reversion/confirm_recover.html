@@ -17,12 +17,12 @@
 {% block content %}
     <p>
         {% blocktrans with escaped_object=object %}
-            Are you sure you want to restore the {{ object_name }} "{{ escaped_object }}" to its version of {{ revision_date }}?
+            Are you sure you want to restore the {{ object_name }} "{{ escaped_object }}" to its version from {{ revision_date }}?
         {% endblocktrans %}
     </p>
 
     {% if placeholders_to_restore %}
-        <p>{% trans 'Following placeholders were deleted and will be restored:' %}</p>
+        <p>{% trans 'The following placeholders were deleted and will be restored:' %}</p>
         <ul>
             {% for placeholder_version in placeholders_to_restore %}
                 <li>{{ placeholder_version.content_type.name|capfirst }} #{{ placeholder_version.object_id_int }}: {{ placeholder_version.object_repr }}</li>
@@ -31,7 +31,7 @@
     {% endif %}
 
     {% if conflicts %}
-        <h3>{% trans 'Warning there is conflicts' %}</h3>
+        <h3>{% trans 'Warning there are conflicts' %}</h3>
         <p>{% trans 'Please restore required related objects first:' %}</p>
         <ul>
             {% for conflict in conflict_links %}
@@ -42,7 +42,7 @@
 
     {% if restore_form %}
         {% if non_resolvable_conflicts %}
-            <h3>{% trans 'Following conflicts would be recovered automatically' %}</h3>
+            <h3>{% trans 'The following conflicts would be recovered automatically' %}</h3>
             <ul>
                 {% for conflict in non_resolvable_conflicts %}
                     <li>{{ conflict.content_type.name|capfirst }} #{{ conflict.object_id_int }}: {{ conflict.object_repr }}</li>

@@ -103,18 +103,22 @@ def get_deleted_placeholders(revision):
 
 def get_deleted_placeholders_for_object(obj, revision):
     """
-    Return deleted placeholders
+    Return deleted placeholders for object given
     """
     if object_has_placeholders(obj):
 
         placeholders_versions = get_deleted_placeholders(revision)
-        # add only placeholders that belong to this object
-        placeholders_pks = [getattr(obj, field_name).pk
+        # add only placeholders that belong to this object,
+        # accessing field_name itself refers to deleted object, but _id isn't.
+        # Other approach would be to load object_repr and get data from there
+        placeholders_pks = [getattr(obj, '{0}_id'.format(field_name))
                             for field_name in get_placeholder_fields_names(obj)
-                            if getattr(obj, field_name, None) is not None]
+                            if getattr(obj,
+                                       '{0}_id'.format(field_name),
+                                       None) is not None]
         return [placeholder_version
                 for placeholder_version in placeholders_versions
-                if placeholder_version.pk in placeholders_pks]
+                if placeholder_version.object_id_int in placeholders_pks]
     return []
 
 
