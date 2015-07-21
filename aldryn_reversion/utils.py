@@ -3,6 +3,18 @@ from django.db.models.fields.related import ForeignKey
 import cms.models
 
 
+def object_is_translation(obj):
+    """
+    Returns True if object is translation object.
+    """
+    related_name = getattr(obj, 'related_name', None)
+    if related_name is None:
+        return False
+    if related_name != u'translations':
+        return False
+    return True
+
+
 def get_translations_versions_for_object(obj, revision, versions=None):
     """
     Returns a queryset of translation versions for given object, if versions
