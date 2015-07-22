@@ -1,5 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.fields.related import ForeignKey
+from django.utils.encoding import force_text
 import cms.models
 
 
@@ -13,6 +14,26 @@ def object_is_translation(obj):
     if related_name != u'translations':
         return False
     return True
+
+
+def build_obj_repr(obj):
+    """
+    Returns a unicode string of object Model name and its text representation.
+    """
+    return u"{0}: '{1}'".format(force_text(obj._meta.model.__name__),
+                                force_text(obj))
+
+
+def get_translation_info_message(obj):
+    """
+    Prepares a simple translation info message i.e " ('EN' translation)"
+    for given object, or an empty string.
+    """
+    language_message = u''
+    if getattr(obj, 'language_code', None) is not None:
+        language_message = u" ('{0}' translation)".format(
+            obj.language_code.upper())
+    return language_message
 
 
 def get_translations_versions_for_object(obj, revision, versions=None):

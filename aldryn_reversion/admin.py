@@ -21,14 +21,9 @@ from reversion.models import Version
 from .core import create_revision_with_placeholders
 from .forms import RecoverObjectWithTranslationForm
 from .utils import (
-    get_conflict_fks_versions, resolve_conflicts,
-    get_deleted_placeholders_for_object,
-)
-
-from .forms import RecoverObjectWithTranslationForm
-from .utils import (
-    get_conflict_fks_versions, resolve_conflicts,
-    get_deleted_placeholders_for_object, object_is_translation
+    get_conflict_fks_versions, resolve_conflicts, build_obj_repr,
+    get_deleted_placeholders_for_object, object_is_translation,
+    get_translation_info_message,
 )
 
 
@@ -106,52 +101,48 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         comment = u'Deleted plugin #{0.id}: {0!s}'.format(plugin)
         self._create_revision(plugin, request.user, comment)
 
-    def get_revision_instances(self, request, obj):
-        revision_instances = []
-        if not object_is_translation(obj):
-            return [obj]
-        # return all translation related objects that will be deleted
-        # with the translation including inline objects.
-        master = obj.master
-        translation_objects = self.get_translation_objects(
-            request, obj.language_code, obj=master)
-
-        for translation_object in translation_objects:
-            # we need to cast tupes because get_translation_objects returns
-            # either a list or tuple or a queryset...
-            revision_instances += list(translation_object)
-        # FIXME: needs to be checked, 99% obj will be in revision_instances
-        # because we look up for translations and inline/related objects
-        # that are under translations
-        if obj not in revision_instances:
-            revision_instances += [obj]
-        return revision_instances
-
-    # TODO: extract to separate translation admin mixin
-    def log_deletion(self, request, obj, object_repr):
-        # django-reversion does not provides you with log deletion,
-        # for recover view it just uses diff between real objects
-        # and the last revision objects for given model
-
-        if object_is_translation(obj):
-            object_repr = '{0} of {1}'.format(
-                obj.language_code, force_text(obj.master))
-        super(VersionedPlaceholderAdminMixin, self).log_deletion(
-            request, obj, object_repr)
-        # skip not translation objects, we don't need to do anything on regular
-        # objects
-        if not object_is_translation(obj):
-            return
-
-        message = _("Translation for '{0}' language has been deleted".format(
-            obj.language_code))
+    def log_addition(self, request, obj):
+        """
+        Override reversion.VersionAdmin log addition to provide useful message.
+        """
+        super(reversion.VersionAdmin, self).log_addition(request, obj)
+        comment = _("Initial version of {0}.{1}".format(
+            build_obj_repr(obj), get_translation_info_message(obj)))
         self.revision_manager.save_revision(
             self.get_revision_data(request, obj),
             user=request.user,
-            comment=message,
+            comment=comment,
             ignore_duplicates=self.ignore_duplicate_revisions,
             db=self.revision_context_manager.get_db(),
         )
+
+    def log_change(self, request, obj, message):
+        # prepare correct change message so that we can distinguish which
+        # revision would be restored. if object has language code - apppend
+        # it to the message
+        new_message = u"{0} {1}{2}".format(
+            message, build_obj_repr(obj), get_translation_info_message(obj))
+        super(VersionedPlaceholderAdminMixin, self).log_change(
+            request, obj, new_message)
+
+    # TODO: extract to separate translation admin mixin
+    def log_deletion(self, request, obj, object_repr):
+        # skip not translation objects, we don't need to do anything on regular
+        # objects
+        if not object_is_translation(obj):
+            super(VersionedPlaceholderAdminMixin, self).log_deletion(
+                request, obj, object_repr)
+            return
+
+        # django-reversion does not provides you with log deletion,
+        # for recover view it just uses diff between real objects
+        # and the last revision objects for given model.
+        # Instead wev will use log_change for translation master object
+        message = _(
+            "Translation deletion for {0} ('{1}' language).".format(
+                build_obj_repr(obj.master), obj.language_code.upper())
+        )
+        self.log_change(request, obj.master, message)
 
     @transaction.atomic
     def revision_view(self, request, object_id, version_id,
