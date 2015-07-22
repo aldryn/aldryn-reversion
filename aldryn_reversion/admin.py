@@ -116,14 +116,16 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             db=self.revision_context_manager.get_db(),
         )
 
-    def log_change(self, request, obj, message):
+    def log_change(self, request, obj, message, deletion=False):
         # prepare correct change message so that we can distinguish which
         # revision would be restored. if object has language code - apppend
-        # it to the message
-        new_message = u"{0} {1}{2}".format(
-            message, build_obj_repr(obj), get_translation_info_message(obj))
+        # it to the message, but if previous operation was translation deletion
+        # do not modify the message, it is already prepared.
+        if not deletion:
+            message = u"{0} {1}{2}".format(
+                message, build_obj_repr(obj), get_translation_info_message(obj))
         super(VersionedPlaceholderAdminMixin, self).log_change(
-            request, obj, new_message)
+            request, obj, message)
 
     # TODO: extract to separate translation admin mixin
     def log_deletion(self, request, obj, object_repr):
@@ -142,7 +144,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             "Translation deletion for {0} ('{1}' language).".format(
                 build_obj_repr(obj.master), obj.language_code.upper())
         )
-        self.log_change(request, obj.master, message)
+        self.log_change(request, obj.master, message, deletion=True)
 
     @transaction.atomic
     def revision_view(self, request, object_id, version_id,
