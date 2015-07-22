@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 from django.core.exceptions import PermissionDenied
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, NoReverseMatch
 from django.contrib import messages
 from django.contrib.admin.util import unquote
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
@@ -19,11 +19,17 @@ import reversion
 from reversion.models import Version
 
 from .core import create_revision_with_placeholders
+from .forms import RecoverObjectWithTranslationForm
+from .utils import (
+    get_conflict_fks_versions, resolve_conflicts,
+    get_deleted_placeholders_for_object,
+)
 
 
 class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
                                      reversion.VersionAdmin):
     revision_confirmation_template = 'aldryn_reversion/confirm_reversion.html'
+    recover_confirmation_template = 'aldryn_reversion/confirm_recover.html'
 
     def add_plugin(self, request):
         with transaction.atomic():
@@ -153,3 +159,126 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             }
             return render_to_response(self.revision_confirmation_template,
                                       context, RequestContext(request))
+
+    @transaction.atomic
+    def recover_view(self, request, version_id, extra_context=None):
+        if not self.has_change_permission(request):
+            raise PermissionDenied()
+
+        version = get_object_or_404(Version, pk=unquote(version_id))
+        obj = version.object_version.object
+        revision = version.revision
+
+        # check for conflicts, it is better that user would solve them
+        conflict_fks_versions = get_conflict_fks_versions(
+            obj, version, revision)
+
+        # build urls to point user onto restore links for conflicts
+        opts = self.model._meta
+        non_reversible_by_user = []
+        conflicts_links_to_restore = []
+        for fk_version in conflict_fks_versions:
+            # try to point user to conflict recover views
+            try:
+                link = reverse(
+                    'admin:{0}_{1}_recover'.format(
+                        opts.app_label,
+                        fk_version.object_version.object._meta.model_name),
+                    args=[fk_version.pk])
+                link_dict = {
+                    'version': fk_version,
+                    'link': link
+                }
+            except NoReverseMatch:
+                # if there is exception either model is not registered
+                # with VersionedPlaceholderAdminMixin or there is no admin
+                # for that model. In both cases we need to revert this object
+                # to avoid conflicts / integrity errors
+                non_reversible_by_user.append(fk_version)
+            else:
+                conflicts_links_to_restore.append(link_dict)
+
+        # check if we need to restore placeholder fields
+        object_placeholders = get_deleted_placeholders_for_object(obj, revision)
+        # FIXME: Not heavily tested yet
+        if len(non_reversible_by_user) > 0:
+            to_resolve = resolve_conflicts(
+                non_reversible_by_user[0], non_reversible_by_user[1:])
+            non_reversible_by_user = set(to_resolve)
+
+        # prepare form kwargs
+        restore_form_kwargs = {
+            'revision': revision,
+            'obj': obj,
+            'version': version,
+            'resolve_conflicts': non_reversible_by_user,
+            'placeholders': object_placeholders
+        }
+
+        if request.method == "POST":
+            form = RecoverObjectWithTranslationForm(request.POST,
+                                                    **restore_form_kwargs)
+            # form.is_valid would perform validation against foreign keys
+            if form.is_valid():
+                # form save will restore desired versions for object and its
+                # translations
+                form.save()
+                # FIXME: optimize response
+                opts = self.model._meta
+                pk_value = obj._get_pk_val()
+                preserved_filters = self.get_preserved_filters(request)
+
+                msg_dict = {
+                    'name': force_text(opts.verbose_name),
+                    'obj': force_text(obj)
+                }
+                msg = _('The %(name)s "%(obj)s" was successfully recovered. '
+                        'You may edit it again below.') % msg_dict
+                self.message_user(request, msg, messages.SUCCESS)
+                redirect_url = reverse(
+                    'admin:%s_%s_change' % (opts.app_label, opts.model_name),
+                    args=(pk_value,),
+                    current_app=self.admin_site.name
+                )
+                # TODO: Check if there is next parameter and redirect to
+                # next, for cases of conflict solving.
+                redirect_url = add_preserved_filters({
+                    'preserved_filters': preserved_filters,
+                    'opts': opts,
+                }, redirect_url)
+                return HttpResponseRedirect(redirect_url)
+        else:
+            # populate form with regular data
+            form = RecoverObjectWithTranslationForm(**restore_form_kwargs)
+
+        context = {
+            'object': obj,
+            'version': version,
+            'revision': revision,
+            'revision_date': revision.date_created,
+            'conflicts': bool(conflict_fks_versions),
+            'conflict_links': conflicts_links_to_restore,
+            'non_resolvable_conflicts': non_reversible_by_user,
+            'placeholders_to_restore': object_placeholders,
+            'versions': revision.version_set.order_by(
+                'content_type__name', 'object_id_int').all,
+            'object_name': force_text(self.model._meta.verbose_name),
+            'app_label': self.model._meta.app_label,
+            'opts': self.model._meta,
+            'add': False,
+            'change': True,
+            'save_as': False,
+            'has_add_permission': self.has_add_permission(request),
+            'has_change_permission': self.has_change_permission(
+                request, obj),
+            'has_delete_permission': self.has_delete_permission(
+                request, obj),
+            'has_file_field': True,
+            'has_absolute_url': False,
+            'original': obj,
+        }
+        # if there is no conflicts - add form to context.
+        if not conflicts_links_to_restore:
+            context['restore_form'] = form
+        return render_to_response(self.recover_confirmation_template,
+                                  context, RequestContext(request))
