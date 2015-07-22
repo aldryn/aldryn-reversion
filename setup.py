@@ -36,7 +36,6 @@ setup(
     zip_safe=False,
     test_suite="test_settings.run",
     dependency_links=[
-        'git+https://github.com/yakky/django-cms@future/integration#egg=django-cms-3.0.90a3',
         'django-reversion',
     ],
 )
