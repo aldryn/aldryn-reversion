@@ -59,6 +59,16 @@ For the model, add ``version_controlled_content`` as a decorator like so: ::
     class MyModel(models.Model):
         ...
 
+If yor model has FK relations you can use `follow` property from
+`django-reversions` when applying decorator: ::
+
+    @version_controlled_content(follow=['my_fk_relation', 'other_fk_relation'])
+    class MyModel(models.Model):
+        ...
+
+This would also add related objects into revision's content. **Note** that they
+should also be registered with reversions!
+
 For tha admin, simply replace ``PlaceholderAdminMixin`` with
 ``VersionedPlaceholderAdminMixin`` to your Admin class for any model's that
 include placeholders that should be versioned like so: ::
@@ -67,6 +77,18 @@ include placeholders that should be versioned like so: ::
 
     class MyModelAdmin(VersionedPlacholderAdminMixin, admin.ModelAdmin):
         ...
+
+You can access revisions from model's admin change form.
+**Important** with current version of Aldryn Reverion when you will restore
+certain revision you will also restore all objects that are present in the same
+revision to a state which was saved with that revision.
+
+You can access recover view form model's admin change list view. Recover view
+will allow you to restore deleted object with translations that are belong to
+it. Also if FK relations were registered with `follow` property and they are
+required for this object - they should be restored also. If user has an ability
+to restore required objects manually - he will need to restore them manually,
+otherwise they will be restored automatically to state at that revision.
 
 Options
 ~~~~~~~
