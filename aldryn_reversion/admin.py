@@ -21,8 +21,9 @@ from reversion.models import Version
 from .core import create_revision_with_placeholders
 from .forms import RecoverObjectWithTranslationForm
 from .utils import (
-    get_conflict_fks_versions, resolve_conflicts,
-    get_deleted_placeholders_for_object,
+    get_conflict_fks_versions, resolve_conflicts, build_obj_repr,
+    get_deleted_placeholders_for_object, object_is_translation,
+    get_translation_info_message,
 )
 
 
@@ -56,6 +57,12 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
                     VersionedPlaceholderAdminMixin, self).delete_plugin(
                     request, plugin_id)
 
+    def get_commen_plugin_info(self, plugin):
+        """
+        Returns a dict with plugin info (to use in comment for revision)
+        """
+        return {'plugin_id': plugin.id, 'plugin': force_text(plugin)}
+
     def _create_revision(self, plugin, user=None, comment=None):
         #
         # _get_attached_objects returns the models which define the
@@ -78,27 +85,80 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
     def post_add_plugin(self, request, placeholder, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_add_plugin(
             request, placeholder, plugin)
-        comment = u'Added plugin #{0.id}: {0!s}'.format(plugin)
+        comment_dict = self.get_commen_plugin_info(plugin)
+        comment = _('Added plugin #%(plugin_id)s: %(plugin)s') % comment_dict
         self._create_revision(plugin, request.user, comment)
 
     def post_edit_plugin(self, request, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_edit_plugin(
             request, plugin)
-        comment = u'Edited plugin #{0.id}: {0!s}'.format(plugin)
+        comment_dict = self.get_commen_plugin_info(plugin)
+        comment = _('Edited plugin #%(plugin_id)s: %(plugin)s') % comment_dict
         self._create_revision(plugin, request.user, comment)
 
     def post_move_plugin(self, request, source_placeholder, target_placeholder,
                          plugin):
         super(VersionedPlaceholderAdminMixin, self).post_move_plugin(
             request, source_placeholder, target_placeholder, plugin)
-        comment = u'Moved plugin #{0.id}: {0!s}'.format(plugin)
+        comment_dict = self.get_commen_plugin_info(plugin)
+        comment = _('Moved plugin #%(plugin_id)s: %(plugin)s') % comment_dict
         self._create_revision(plugin, request.user, comment)
 
     def post_delete_plugin(self, request, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_delete_plugin(
             request, plugin)
-        comment = u'Deleted plugin #{0.id}: {0!s}'.format(plugin)
+        comment_dict = self.get_commen_plugin_info(plugin)
+        comment = _('Deleted plugin #%(plugin_id)s: %(plugin)s') % comment_dict
         self._create_revision(plugin, request.user, comment)
+
+    def log_addition(self, request, obj):
+        """
+        Override reversion.VersionAdmin log addition to provide useful message.
+        """
+        super(reversion.VersionAdmin, self).log_addition(request, obj)
+        comment = _(
+            "Initial version of %(object_repr)s.%(translation_info)s") % {
+                'object_repr': build_obj_repr(obj),
+                'translation_info': get_translation_info_message(obj)
+            }
+        self.revision_manager.save_revision(
+            self.get_revision_data(request, obj),
+            user=request.user,
+            comment=comment,
+            ignore_duplicates=self.ignore_duplicate_revisions,
+            db=self.revision_context_manager.get_db(),
+        )
+
+    def log_change(self, request, obj, message, deletion=False):
+        # prepare correct change message so that we can distinguish which
+        # revision would be restored. if object has language code - apppend
+        # it to the message, but if previous operation was translation deletion
+        # do not modify the message, it is already prepared.
+        if not deletion:
+            message = "{0} {1}{2}".format(
+                message, build_obj_repr(obj), get_translation_info_message(obj))
+        super(VersionedPlaceholderAdminMixin, self).log_change(
+            request, obj, message)
+
+    # TODO: extract to separate translation admin mixin
+    def log_deletion(self, request, obj, object_repr):
+        # skip not translation objects, we don't need to do anything on regular
+        # objects
+        if not object_is_translation(obj):
+            super(VersionedPlaceholderAdminMixin, self).log_deletion(
+                request, obj, object_repr)
+            return
+
+        # django-reversion does not provides you with log deletion,
+        # for recover view it just uses diff between real objects
+        # and the last revision objects for given model.
+        # Instead wev will use log_change for translation master object
+        message = _(
+            "Translation deletion for %(object_repr)s "
+            "('%(lang_code)s' language).") % {
+                'object_repr': build_obj_repr(obj.master),
+                'lang_code': obj.language_code.upper()}
+        self.log_change(request, obj.master, message, deletion=True)
 
     @transaction.atomic
     def revision_view(self, request, object_id, version_id,
