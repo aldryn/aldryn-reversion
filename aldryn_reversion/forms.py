@@ -3,7 +3,7 @@ from django.forms import forms
 from django.forms.fields import MultipleChoiceField
 from django.forms.widgets import CheckboxSelectMultiple
 from django.utils.encoding import force_text
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from .utils import (
     get_translations_versions_for_object, get_conflict_fks_versions,
