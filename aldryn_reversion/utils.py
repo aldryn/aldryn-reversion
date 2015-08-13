@@ -67,7 +67,7 @@ def get_fk_models(obj, blank=None):
     fk_fields = [fk for fk in obj._meta.fields if type(fk) == ForeignKey]
     fks_models = []
     for fk in fk_fields:
-        if (blank is not None and fk.blank == blank) or blank is None:
+        if fk.blank == blank or blank is None:
             fks_models.append(fk.rel.to)
     return fks_models
 
