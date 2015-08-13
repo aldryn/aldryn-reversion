@@ -1,0 +1,4 @@
+coverage>=3.7.1
+djangocms-helper>=0.7
+flake8
+pyflakes

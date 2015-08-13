@@ -119,8 +119,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         comment = _(
             "Initial version of %(object_repr)s.%(translation_info)s") % {
                 'object_repr': build_obj_repr(obj),
-                'translation_info': get_translation_info_message(obj)
-            }
+                'translation_info': get_translation_info_message(obj)}
         self.revision_manager.save_revision(
             self.get_revision_data(request, obj),
             user=request.user,
