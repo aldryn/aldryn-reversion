@@ -27,7 +27,7 @@ def build_obj_repr(obj):
     Returns a unicode string of object Model name and its text representation.
     """
     return "{0}: '{1}'".format(force_text(obj._meta.model.__name__),
-                                force_text(obj))
+                               force_text(obj))
 
 
 def get_translation_info_message(obj):
