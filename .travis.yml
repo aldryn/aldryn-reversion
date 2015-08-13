@@ -1,19 +1,23 @@
 language: python
-python: 2.7
+
 env:
   - TOX_ENV=flake8
-  - TOX_ENV=py27-dj16-cms30
-  - TOX_ENV=py27-dj16-cms31
-  - TOX_ENV=py27-dj17-cms30
+  - TOX_ENV=py34-dj18-cms31
+  - TOX_ENV=py34-dj18-cms30
+  - TOX_ENV=py34-dj17-cms31
+  - TOX_ENV=py34-dj17-cms30
+  - TOX_ENV=py27-dj18-cms31
+  - TOX_ENV=py27-dj18-cms30
   - TOX_ENV=py27-dj17-cms31
-
-matrix:
-  include:
-    - python: 2.6
-      env:
-        - TOX_ENV=py26-dj16
-        - TOX_ENV=py26-dj16-cms30
-        - TOX_ENV=py26-dj16-cms31
+  - TOX_ENV=py27-dj17-cms30
+  - TOX_ENV=py26-dj18-cms31
+  - TOX_ENV=py26-dj18-cms30
+  - TOX_ENV=py26-dj17-cms31
+  - TOX_ENV=py26-dj17-cms30
+  - TOX_ENV=py27-dj16-cms31
+  - TOX_ENV=py27-dj16-cms30
+  - TOX_ENV=py26-dj16-cms31
+  - TOX_ENV=py26-dj16-cms30
 
 install:
   - pip install tox coveralls
