@@ -21,11 +21,11 @@ class RecoverObjectWithTranslationForm(forms.Form):
         # prepare data for misc lookups
         self.revision = kwargs.pop('revision')
         self.obj = kwargs.pop('obj')
-        self.obj_version = kwargs.pop('version')
+        self.version = kwargs.pop('version')
         self.resolve_conflicts = kwargs.pop('resolve_conflicts')
         self.placeholders = kwargs.pop('placeholders')
         # do not check object which needs to be recovered
-        versions = self.revision.version_set.exclude(pk=self.obj_version.pk)
+        versions = self.revision.version_set.exclude(pk=self.version.pk)
 
         super(RecoverObjectWithTranslationForm, self).__init__(*args, **kwargs)
 
@@ -46,7 +46,7 @@ class RecoverObjectWithTranslationForm(forms.Form):
         # if there is self.resolve_conflicts do not count them as conflicts
         exclude = {'pk__in': [version.pk for version in self.resolve_conflicts]}
         conflict_fks_versions = get_conflict_fks_versions(
-            self.obj, self.obj_version, self.revision,
+            self.obj, self.version, self.revision,
             exclude=exclude)
         if bool(conflict_fks_versions):
             raise ValidationError(
@@ -57,6 +57,8 @@ class RecoverObjectWithTranslationForm(forms.Form):
     def save(self):
         # restore placeholders
         for placeholder_version in self.placeholders:
+            # note that only placeholders are being reverted, assuming that
+            # cms plugins that are related to this placeholder were not deleted
             placeholder_version.revert()
 
         # if there is self.resolve_conflicts revert those objects to avoid
@@ -66,11 +68,12 @@ class RecoverObjectWithTranslationForm(forms.Form):
             conflict.revert()
 
         # revert main object
-        self.obj_version.revert()
+        self.version.revert()
 
         # revert translations, if there is translations
-        translations_pks = self.cleaned_data.get('translations', [])
+        translations_pks = self.cleaned_data.get(
+            'translations', []) if hasattr(self, 'cleaned_data') else []
         translation_versions = self.revision.version_set.filter(
-            pk__in=translations_pks)
+            pk__in=translations_pks) if translations_pks else []
         for translation_version in translation_versions:
             translation_version.revert()
