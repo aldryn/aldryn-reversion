@@ -4,12 +4,18 @@ from __future__ import unicode_literals
 
 import six
 import reversion
+from reversion.models import Version
 
 from django.db import transaction
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from django.contrib.auth.hashers import make_password
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils.translation import override
-from django.test import TransactionTestCase
+from django.test import RequestFactory, TransactionTestCase
+
+from cms.utils.i18n import get_language_list
 
 from aldryn_reversion.test_helpers.test_app.models import (
     SimpleNoAdmin, SimpleRegistered, WithTranslations, WithPlaceholder,
@@ -108,6 +114,14 @@ class ReversionBaseTestCase(TransactionTestCase):
                 object_with_revision)))[revision_number - 1]
         version.revision.revert()
 
+    def get_object(self, object_or_version):
+        """
+        Returns object regardless of type fo object_or_version.
+        """
+        return (object_or_version
+                if type(object_or_version) != Version
+                else object_or_version.object_version.object)
+
 
 class HelperModelsObjectsSetupMixin(object):
 
@@ -154,3 +168,35 @@ class HelperModelsObjectsSetupMixin(object):
             MultiLevelFK,
             first_relation=self.simple_fk,
             second_relation=self.complex_one_fk)
+
+
+class CMSRequersBasedMixin(object):
+    languages = get_language_list()
+
+    @classmethod
+    def setUpClass(cls):
+        super(CMSRequersBasedMixin, cls).setUpClass()
+        cls.request_factory = RequestFactory()
+        cls.site1 = Site.objects.get(pk=1)
+
+    @staticmethod
+    def get_request(language=None, url="/"):
+        """
+        Returns a Request instance populated with cms specific attributes.
+        User is not set.
+        """
+        request_factory = RequestFactory(HTTP_HOST=settings.ALLOWED_HOSTS[0])
+        request = request_factory.get(url)
+        request.LANGUAGE_CODE = language or settings.LANGUAGE_CODE
+        # Needed for plugin rendering.
+        request.current_page = None
+        # session and messages
+        setattr(request, 'session', 'session')
+        messages = FallbackStorage(request)
+        setattr(request, '_messages', messages)
+        return request
+
+    def get_su_request(self, language=None, url="/"):
+        request = self.get_request(language, url)
+        request.user = self.super_user
+        return request
