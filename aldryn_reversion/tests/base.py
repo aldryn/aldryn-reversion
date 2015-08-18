@@ -122,6 +122,14 @@ class ReversionBaseTestCase(TransactionTestCase):
                 if type(object_or_version) != Version
                 else object_or_version.object_version.object)
 
+    def get_version(self, object_or_version):
+        """
+        Returns version or latest version for object, if object_or_version is
+        object not reversion.models.Version.
+        """
+        return (object_or_version if type(object_or_version) == Version
+                else get_latest_version_for_object(object_or_version))
+
 
 class HelperModelsObjectsSetupMixin(object):
 

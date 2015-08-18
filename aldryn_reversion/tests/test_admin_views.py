@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import reversion
 from reversion.models import Version
 
 from django.contrib import admin
@@ -16,9 +17,9 @@ from .base import (
     get_latest_version_for_object,
 )
 
-
+VERSION_INFO = "{content_type_name} #{object_id_int}: {object_repr}"
 PLACEHOLDER_STR = RESOLVABLE_CONFLICT_STR = NON_RESOLVABLE_CONFLICT_STR = (
-    "{content_type_name} #{object_id_int}: {object_repr}")
+    VERSION_INFO)
 VERSIONS_INFO = {
     'ph': PLACEHOLDER_STR,
     'conflict': RESOLVABLE_CONFLICT_STR,
@@ -32,7 +33,8 @@ NON_RESOLVABLE_CONFLICT_INFO = (
 )
 ALL_INFO_MESSAGES = [PLACEHOLDER_INFO, CONFLICT_INFO,
                      NON_RESOLVABLE_CONFLICT_INFO]
-RECOVER_BUTTON = """<input type="submit" value="Yes, I'm sure" />"""
+REVERT_BUTTON = RECOVER_BUTTON = (
+    """<input type="submit" value="Yes, I'm sure" />""")
 
 
 class AdminUtilsMixin(object):
@@ -66,6 +68,16 @@ class AdminUtilsMixin(object):
         admin_instance = self.admin_registry[kls]
         return admin_instance
 
+    def build_string_args(self, version):
+        """
+        Prepare dict for building version info the same way it is specified in
+        the template. Method is being used to populate prepared raw strings:
+        PLACEHOLDER_STR, RESOLVABLE_CONFLICT_STR, NON_RESOLVABLE_CONFLICT_STR
+        """
+        return {'content_type_name': version.content_type.name.capitalize(),
+                'object_id_int': version.object_id_int,
+                'object_repr': version.object_repr}
+
 
 class ReversionRecoverAdminTestCase(AdminUtilsMixin,
                                     CMSRequersBasedMixin,
@@ -79,16 +91,6 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
         """
         return super(ReversionRecoverAdminTestCase,
                      self).get_admin_url_for_obj(obj, view_name, version)
-
-    def build_string_args(self, version):
-        """
-        Prepare dict for building version info the same way it is specified in
-        the template. Method is being used to populate prepared raw strings:
-        PLACEHOLDER_STR, RESOLVABLE_CONFLICT_STR, NON_RESOLVABLE_CONFLICT_STR
-        """
-        return {'content_type_name': version.content_type.name.capitalize(),
-                'object_id_int': version.object_id_int,
-                'object_repr': version.object_repr}
 
     def get_version(self, object_or_version):
         """
@@ -248,3 +250,62 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
         self.assertEqual(response.status_code, 302)
         self.assertEqual(SimpleFK.objects.count(), 1)
         self.assertEqual(SimpleNoAdmin.objects.count(), 1)
+
+
+class ReversionRevisionAdminTestCase(AdminUtilsMixin,
+                                     CMSRequersBasedMixin,
+                                     HelperModelsObjectsSetupMixin,
+                                     ReversionBaseTestCase):
+
+    def get_admin_url_for_obj(self, obj, view_name, version=None):
+        """
+        Build admin view_name url for object.
+        """
+        opts = obj._meta
+        url = reverse(
+            'admin:{0}_{1}_{2}'.format(
+                opts.app_label,
+                obj._meta.model_name,
+                view_name),
+            args=[obj.pk, version.pk])
+        return url
+
+    def get_revision_view_response(self, obj, version, language='en'):
+        url = self.get_admin_url_for_obj(obj, 'revision', version)
+        request = self.get_su_request(language, url)
+        admin_instance = self.get_admin_instance_for_object(obj)
+        return admin_instance.revision_view(request,
+                                            str(obj.pk),
+                                            str(version.pk))
+
+    def post_revision_veiw_response(self, obj, version, language='en'):
+        url = self.get_admin_url_for_obj(obj, 'revision', version)
+        request = self.get_su_request(language, url)
+        request.method = 'POST'
+        admin_instance = self.get_admin_instance_for_object(obj)
+        return admin_instance.revision_view(request,
+                                            str(obj.pk),
+                                            str(version.pk))
+
+    def test_revision_view_is_accessible(self):
+        simple_registered_version = get_latest_version_for_object(
+            self.simple_registered)
+        response = self.get_revision_view_response(
+            self.simple_registered, simple_registered_version)
+        for version in simple_registered_version.revision.version_set.all():
+            self.assertContains(response, VERSION_INFO.format(
+                **self.build_string_args(version)))
+        self.assertContains(response, REVERT_BUTTON)
+
+    def test_revision_view_reverts_object_to_selected_state(self):
+        initial_position = self.simple_registered.position
+        new_position = 99
+        self.create_revision(self.simple_registered, position=new_position)
+        self.assertNotEqual(initial_position, self.simple_registered.position)
+        prev_version = reversion.get_for_object(self.simple_registered)[1]
+        response = self.post_revision_veiw_response(
+            self.simple_registered, prev_version)
+        self.assertEqual(response.status_code, 302)
+        self.simple_registered = SimpleRegistered.objects.get(
+            pk=self.simple_registered.pk)
+        self.assertEquals(self.simple_registered.position, initial_position)
