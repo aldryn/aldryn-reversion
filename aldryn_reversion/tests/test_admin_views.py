@@ -84,7 +84,7 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
                                     HelperModelsObjectsSetupMixin,
                                     ReversionBaseTestCase):
 
-    def get_admin_url_for_obj(self, obj, view_name='recover',  version=None):
+    def get_admin_url_for_obj(self, obj, view_name='recover', version=None):
         """
         Build admin view url for object, if view_name is not specified - builds
         url for recover view.
@@ -202,8 +202,8 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
 
         simple_registered_version = get_latest_version_for_object(
             self.simple_registered)
-        conflict_url = self.get_admin_url_for_obj(self.simple_registered,
-                                                  version=simple_registered_version)
+        conflict_url = self.get_admin_url_for_obj(
+            self.simple_registered, version=simple_registered_version)
         simple_required_fk_version = get_latest_version_for_object(
             self.simple_required_fk)
         self.simple_registered.delete()

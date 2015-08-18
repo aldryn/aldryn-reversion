@@ -36,6 +36,7 @@ class SimpleFKAdmin(VersionedPlaceholderAdminMixin, admin.ModelAdmin):
 class SimpleRequiredFKAdmin(VersionedPlaceholderAdminMixin, admin.ModelAdmin):
     pass
 
+
 class ComplexOneFKAdmin(VersionedPlaceholderAdminMixin,
                         FrontendEditableAdminMixin,
                         TranslatableAdmin):
