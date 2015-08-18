@@ -180,12 +180,12 @@ class HelperModelsObjectsSetupMixin(object):
             second_relation=self.complex_one_fk)
 
 
-class CMSRequersBasedMixin(object):
+class CMSRequestBasedMixin(object):
     languages = get_language_list()
 
     @classmethod
     def setUpClass(cls):
-        super(CMSRequersBasedMixin, cls).setUpClass()
+        super(CMSRequestBasedMixin, cls).setUpClass()
         cls.request_factory = RequestFactory()
         cls.site1 = Site.objects.get(pk=1)
 

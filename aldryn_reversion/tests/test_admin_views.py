@@ -13,7 +13,7 @@ from aldryn_reversion.test_helpers.test_app.models import (
 )
 
 from .base import (
-    HelperModelsObjectsSetupMixin, CMSRequersBasedMixin, ReversionBaseTestCase,
+    HelperModelsObjectsSetupMixin, CMSRequestBasedMixin, ReversionBaseTestCase,
     get_latest_version_for_object,
 )
 
@@ -80,7 +80,7 @@ class AdminUtilsMixin(object):
 
 
 class ReversionRecoverAdminTestCase(AdminUtilsMixin,
-                                    CMSRequersBasedMixin,
+                                    CMSRequestBasedMixin,
                                     HelperModelsObjectsSetupMixin,
                                     ReversionBaseTestCase):
 
@@ -253,7 +253,7 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
 
 
 class ReversionRevisionAdminTestCase(AdminUtilsMixin,
-                                     CMSRequersBasedMixin,
+                                     CMSRequestBasedMixin,
                                      HelperModelsObjectsSetupMixin,
                                      ReversionBaseTestCase):
 
