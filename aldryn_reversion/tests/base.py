@@ -19,7 +19,7 @@ from cms.utils.i18n import get_language_list
 
 from aldryn_reversion.test_helpers.test_app.models import (
     SimpleNoAdmin, SimpleRegistered, WithTranslations, WithPlaceholder,
-    SimpleFK, BlankFK, ComplexOneFK, MultiLevelFK,
+    SimpleFK, BlankFK, ComplexOneFK, MultiLevelFK, SimpleRequiredFK,
 )
 
 
@@ -156,6 +156,8 @@ class HelperModelsObjectsSetupMixin(object):
         self.blank_fk = self.create_with_revision(
             BlankFK,
             simple_relation=self.simple_registered)
+        self.simple_required_fk = self.create_with_revision(
+            SimpleRequiredFK, simple_relation=self.simple_registered)
         # ComplexOneFK
         self.complex_one_fk = self.create_with_revision(
             ComplexOneFK,

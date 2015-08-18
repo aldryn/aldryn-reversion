@@ -57,6 +57,16 @@ class SimpleFK(models.Model):
 
 
 @version_controlled_content(follow=['simple_relation'])
+class SimpleRequiredFK(models.Model):
+    """
+    Simple relation to model which is registered with reversions admin,
+    and FK is required
+    """
+    simple_relation = models.ForeignKey(SimpleRegistered, null=True,
+                                        on_delete=models.SET_NULL)
+
+
+@version_controlled_content(follow=['simple_relation'])
 class ComplexOneFK(TranslatableModel):
     """
     FK, placeholders, translations

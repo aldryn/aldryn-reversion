@@ -8,7 +8,7 @@ from django.contrib import admin
 from django.core.urlresolvers import reverse, NoReverseMatch
 
 from aldryn_reversion.test_helpers.test_app.models import (
-    SimpleRegistered,
+    SimpleRegistered, SimpleNoAdmin, SimpleFK, SimpleRequiredFK,
 )
 
 from .base import (
@@ -18,7 +18,12 @@ from .base import (
 
 
 PLACEHOLDER_STR = RESOLVABLE_CONFLICT_STR = NON_RESOLVABLE_CONFLICT_STR = (
-    "<li>{content_type_name} #{object_id_int}: {object_repr}</li>")
+    "{content_type_name} #{object_id_int}: {object_repr}")
+VERSIONS_INFO = {
+    'ph': PLACEHOLDER_STR,
+    'conflict': RESOLVABLE_CONFLICT_STR,
+    'non_resolavable': NON_RESOLVABLE_CONFLICT_STR
+}
 PLACEHOLDER_INFO = (
     'The following placeholders were deleted and will be restored')
 CONFLICT_INFO = 'Please restore required related objects first'
@@ -36,7 +41,7 @@ class AdminUtilsMixin(object):
         admin.autodiscover()
         self.admin_registry = admin.site._registry
 
-    def get_admin_url_for_obj(self, obj, view_name):
+    def get_admin_url_for_obj(self, obj, view_name, version=None):
         """
         Build admin view_name url for object.
         """
@@ -46,7 +51,7 @@ class AdminUtilsMixin(object):
                 opts.app_label,
                 obj._meta.model_name,
                 view_name),
-            args=[obj.pk])
+            args=[obj.pk if version is None else version.pk])
         return url
 
     def get_admin_instance_for_object(self, obj_or_version):
@@ -67,13 +72,13 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
                                     HelperModelsObjectsSetupMixin,
                                     ReversionBaseTestCase):
 
-    def get_admin_url_for_obj(self, obj, view_name='recover'):
+    def get_admin_url_for_obj(self, obj, view_name='recover',  version=None):
         """
         Build admin view url for object, if view_name is not specified - builds
         url for recover view.
         """
         return super(ReversionRecoverAdminTestCase,
-                     self).get_admin_url_for_obj(obj, view_name)
+                     self).get_admin_url_for_obj(obj, view_name, version)
 
     def build_string_args(self, version):
         """
@@ -112,7 +117,7 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
     def post_recover_view_response(self, obj_or_version, language='en',
                                    version_id=None):
         """
-        Mock a post request to admin view. Returns result ofadmin recover_view
+        Mock a post request to admin view. Returns result of admin recover_view
         processing (response) for given object (object_or_version).
         If object is a Version - uses version.object_version.object.
         If version_id was not provided - latest available version.id is used.
@@ -129,13 +134,21 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
         """
         Check that response contains info_string message,
         if versions are passed builds version info strings and checks that
-        they were rendered.
+        they were rendered. Expects versions to be a dict i.e
+        { 'ph': placeholder_versions_list,
+          'conflict': conflict_versions_list,
+          'non_resolvable': non_resolvable_conflicts_versions_list
+        }
         """
         self.assertContains(response, info_string)
         if versions:
-            search_for = [
-                PLACEHOLDER_STR.format(self.build_string_args(version))
-                for version in versions]
+            search_for = []
+            for msg, versions_list in versions.items():
+                version_info = VERSIONS_INFO[msg]
+                search_for += [version_info.format(
+                    **self.build_string_args(version)
+                ) for version in versions_list]
+
             for info in search_for:
                 self.assertContains(response, info)
 
@@ -168,22 +181,70 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
     def test_recover_warnings_on_conflicts(self):
         # check that there is no warning on conflictable object
         # if there is no conflict
-
+        simple_fk_version = get_latest_version_for_object(self.simple_fk)
+        self.simple_fk.delete()
+        self.assertEqual(SimpleFK.objects.count(), 0)
+        response = self.get_recover_view_response(
+            simple_fk_version, version_id=str(simple_fk_version.id))
+        for info in ALL_INFO_MESSAGES:
+            self.assertNotContains(response, info)
         # check that in this case recover button is accessible
-        # check that recovered object is actually being restored
+        self.assertContains(response, RECOVER_BUTTON)
 
-        # make conflict whcih is solvable by user
+        # check that recovered object is actually being restored
+        response = self.post_recover_view_response(simple_fk_version)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(SimpleFK.objects.count(), 1)
+
+        # make conflict which is solvable by user
+
+        simple_registered_version = get_latest_version_for_object(
+            self.simple_registered)
+        conflict_url = self.get_admin_url_for_obj(self.simple_registered,
+                                                  version=simple_registered_version)
+        simple_required_fk_version = get_latest_version_for_object(
+            self.simple_required_fk)
+        self.simple_registered.delete()
+        self.simple_required_fk.delete()
+        self.assertEqual(SimpleRegistered.objects.count(), 0)
+        self.assertEqual(SimpleRequiredFK.objects.count(), 0)
+
         # check that there is a link to conflict
+        response = self.get_recover_view_response(simple_required_fk_version)
+        # check info messages.
+        self.check_info(response, CONFLICT_INFO,
+                        versions={'conflict': [simple_registered_version]})
+        self.assertContains(response, conflict_url)
         # check that there is no recover button
-        pass
+        self.assertNotContains(response, RECOVER_BUTTON)
 
     def test_recover_no_warnings_on_non_recoverable_by_user_conflict(self):
         # check that if there is no conflict - there is no warning
+
+        simple_fk_version = get_latest_version_for_object(self.simple_fk)
+        self.simple_fk.delete()
+        self.assertEqual(SimpleFK.objects.count(), 0)
+        response = self.get_recover_view_response(simple_fk_version)
+        for info in ALL_INFO_MESSAGES:
+            self.assertNotContains(response, info)
+
         # check that recover button is accessible
+        self.assertContains(response, RECOVER_BUTTON)
 
         # make conflict
-        # check that thre is no conflict warning
+        no_admin_verson = get_latest_version_for_object(self.simple_no_admin)
+        self.simple_no_admin.delete()
+        # check that there is no conflict warning
+        response = self.get_recover_view_response(simple_fk_version)
+        self.assertNotContains(response, CONFLICT_INFO)
+        self.assertContains(response, NON_RESOLVABLE_CONFLICT_INFO)
         # check that conflict object is listed among objects being recovered
+        self.check_info(response, NON_RESOLVABLE_CONFLICT_INFO,
+                        versions={'non_resolavable': [no_admin_verson]})
         # check that recover button is accessible
+        self.assertContains(response, RECOVER_BUTTON)
         # check recovered objects are actually restored
-        pass
+        response = self.post_recover_view_response(simple_fk_version)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(SimpleFK.objects.count(), 1)
+        self.assertEqual(SimpleNoAdmin.objects.count(), 1)
