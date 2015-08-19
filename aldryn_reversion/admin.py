@@ -200,7 +200,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
                 'revision': revision,
                 'revision_date': revision.date_created,
                 'versions': revision.version_set.order_by(
-                    'content_type__name', 'object_id_int').all,
+                    'content_type__model', 'object_id_int').all,
                 'object_name': force_text(self.model._meta.verbose_name),
                 'app_label': self.model._meta.app_label,
                 'opts': self.model._meta,
