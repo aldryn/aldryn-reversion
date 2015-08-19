@@ -33,14 +33,22 @@ class FormsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
             'placeholders': [],
         }
 
-    def build_unbound_form(self, arguments=None, **kwargs):
-        return self.form_class(
-            **(arguments if arguments is not None else kwargs))
+    def build_unbound_form(self, args_dict):
+        """
+        Build a self.form_class unbound form, args_dict - keyword arguments
+        that will be passed to form class __init__.
+        """
+        return self.form_class(**args_dict)
 
-    def build_bound_form(self, arguments=None, **kwargs):
+    def build_bound_form(self, args_dict):
+        """
+        Build a self.form_class bound form by also providing `data` kw argument,
+        to form_class __init__ method to bypass django checks.
+        Expects args_dict to be keyword arguments that will be passed to
+        form class __init__.
+        """
         dummy = {'dummy': 1}
-        return self.form_class(
-            data=dummy, **(arguments if arguments is not None else kwargs))
+        return self.form_class(data=dummy, **args_dict)
 
     def compare_form_attrs(self, form, form_kwargs):
         """
