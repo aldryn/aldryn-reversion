@@ -10,7 +10,7 @@ from cms.admin.placeholderadmin import FrontendEditableAdminMixin
 
 from .models import (
     SimpleRegistered, WithTranslations, WithPlaceholder, SimpleFK,
-    ComplexOneFK, BlankFK, MultiLevelFK, FKtoSelf,
+    ComplexOneFK, BlankFK, MultiLevelFK, FKtoSelf, SimpleRequiredFK
 )
 
 
@@ -30,6 +30,10 @@ class WithPlaceholdersAdmin(VersionedPlaceholderAdminMixin,
 
 
 class SimpleFKAdmin(VersionedPlaceholderAdminMixin, admin.ModelAdmin):
+    pass
+
+
+class SimpleRequiredFKAdmin(VersionedPlaceholderAdminMixin, admin.ModelAdmin):
     pass
 
 
@@ -55,6 +59,7 @@ admin.site.register(SimpleRegistered, SimpleRegisteredAdmin)
 admin.site.register(WithTranslations, WithTranslationsAdmin)
 admin.site.register(WithPlaceholder, WithPlaceholdersAdmin)
 admin.site.register(SimpleFK, SimpleFKAdmin)
+admin.site.register(SimpleRequiredFK, SimpleRequiredFKAdmin)
 admin.site.register(ComplexOneFK, ComplexOneFKAdmin)
 admin.site.register(BlankFK, BlankFKAdmin)
 admin.site.register(MultiLevelFK, MultiLevelFKAdmin)
