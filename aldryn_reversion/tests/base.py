@@ -11,6 +11,11 @@ from django.contrib.auth.hashers import make_password
 from django.utils.translation import override
 from django.test import TransactionTestCase
 
+from aldryn_reversion.test_helpers.test_app.models import (
+    SimpleNoAdmin, SimpleRegistered, WithTranslations, WithPlaceholder,
+    SimpleFK, BlankFK, ComplexOneFK, MultiLevelFK,
+)
+
 
 def get_latest_version_for_object(obj):
         version = reversion.get_for_object(obj)[0]
@@ -102,3 +107,50 @@ class ReversionBaseTestCase(TransactionTestCase):
             reversion.get_for_object(
                 object_with_revision)))[revision_number - 1]
         version.revision.revert()
+
+
+class HelperModelsObjectsSetupMixin(object):
+
+    def setUp(self):
+        super(HelperModelsObjectsSetupMixin, self).setUp()
+        # prepare objects that can be used with utility methods
+        # simple model
+        self.simple_registered = self.create_with_revision(
+            SimpleRegistered, position=1)
+
+        self.simple_no_admin = self.create_with_revision(
+            SimpleNoAdmin, position=42)
+
+        # translations
+        # note that WithTranslations will have 2 revisions, initial one
+        # and with 'de' translation
+        en_description = self.raw_text_string['en'].format(0)
+        de_description = self.raw_text_string['de'].format(0)
+        self.with_translation = self.create_with_revision(
+            WithTranslations, description=en_description)
+        self.create_translation_with_revision(
+            'de', self.with_translation, description=de_description)
+
+        # placeholders
+        self.with_placeholder = self.create_with_revision(
+            WithPlaceholder)
+
+        # FK
+        self.simple_fk = self.create_with_revision(
+            SimpleFK, simple_relation=self.simple_no_admin)
+        # blank FK means that fk is not required.
+        self.blank_fk = self.create_with_revision(
+            BlankFK,
+            simple_relation=self.simple_registered)
+        # ComplexOneFK
+        self.complex_one_fk = self.create_with_revision(
+            ComplexOneFK,
+            simple_relation=self.with_placeholder,
+            complex_description=en_description)
+        self.create_translation_with_revision(
+            'de', self.complex_one_fk, complex_description=de_description)
+        # MultiLevelFK
+        self.multi_level_fk = self.create_with_revision(
+            MultiLevelFK,
+            first_relation=self.simple_fk,
+            second_relation=self.complex_one_fk)
