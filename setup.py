@@ -4,7 +4,7 @@ from aldryn_reversion import __version__
 
 REQUIREMENTS = [
     'django-cms>=3.0.12',
-    'django-reversion>=1.8.2,<1.9',
+    'django-reversion>=1.8.2,<1.10',
     'django-parler>=1.4',
 ]
 
