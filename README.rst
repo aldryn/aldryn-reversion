@@ -2,6 +2,7 @@
 Aldryn Reversion
 ================
 
+|PyPI Version| |Build Status| |Coverage Status| |codeclimate| |requires_io|
 
 Description
 ~~~~~~~~~~~
@@ -113,3 +114,16 @@ placeholderfield(s), register it like so: ::
         placeholder = PlaceholderField()
 
 instead of using the shortcut decorator ``@version-controlled-content``.
+
+.. |PyPI Version| image:: http://img.shields.io/pypi/v/aldryn-reversion.svg
+   :target: https://pypi.python.org/pypi/aldryn-reversion
+.. |Build Status| image:: http://img.shields.io/travis/aldryn/aldryn-reversion/master.svg
+   :target: https://travis-ci.org/aldryn/aldryn-reversion
+.. |Coverage Status| image:: http://img.shields.io/coveralls/aldryn/aldryn-reversion/master.svg
+   :target: https://coveralls.io/r/aldryn/aldryn-reversion?branch=master
+.. |codeclimate| image:: https://codeclimate.com/github/aldryn/aldryn-reversion/badges/gpa.svg
+   :target: https://codeclimate.com/github/aldryn/aldryn-reversion
+   :alt: Code Climate
+.. |requires_io| image:: https://requires.io/github/aldryn/aldryn-reversion/requirements.svg?branch=master
+   :target: https://requires.io/github/aldryn/aldryn-reversion/requirements/?branch=master
+   :alt: Requirements Status

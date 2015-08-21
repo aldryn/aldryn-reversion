@@ -1,5 +1,9 @@
 !.coveragerc
 !.travis.yml
+!.codeclimate.yml
+!.editorconfig
+!.jshintrc
+!.jscsrc
 *.DS_Store
 *.egg
 *.lock
@@ -12,12 +16,16 @@
 *.swp
 *.xml
 *~
+coverage-*.txt
 .*
+.coverage
 .editorconfig
 .project
 .pydevproject
 .ropeproject
 .settings
+.idea
+.tox
 /*.egg-info/
 /*.egg/
 /*env*/
@@ -27,7 +35,9 @@
 /reversion/
 aldryn_reversion.egg-info
 bin
+env
 build
+htmlcov/
 cms/django
 cms/docs/build
 cms/media/cms_page_media/
@@ -45,3 +55,5 @@ lib/
 man/
 parts
 share/
+docs/env
+node_modules/
