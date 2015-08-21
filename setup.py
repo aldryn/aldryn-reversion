@@ -3,19 +3,24 @@ from setuptools import setup, find_packages
 from aldryn_reversion import __version__
 
 REQUIREMENTS = [
+    'Django>=1.6,<1.9',
     'django-cms>=3.0.12',
     'django-reversion>=1.8.2,<1.10',
-    'django-parler>=1.4',
 ]
 
 CLASSIFIERS = [
-    'Development Status :: 2 - Pre-Alpha',
+    'Development Status :: 5 - Production/Stable',
     'Environment :: Web Environment',
     'Framework :: Django',
+    'Framework :: Django :: 1.6',
+    'Framework :: Django :: 1.7',
+    'Framework :: Django :: 1.8',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
+    'Programming Language :: Python :: 2.6',
+    'Programming Language :: Python :: 2.7',
     'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     'Topic :: Software Development',
     'Topic :: Software Development :: Libraries :: Application Frameworks',
@@ -37,7 +42,4 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite="test_settings.run",
-    dependency_links=[
-        'django-reversion',
-    ],
 )
