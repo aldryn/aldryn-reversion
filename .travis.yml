@@ -1,5 +1,8 @@
 language: python
 
+# Use container based infrastructure
+sudo: false
+
 env:
   - TOX_ENV=flake8
   - TOX_ENV=py34-dj18-cms31
