@@ -16,5 +16,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   how_it_works
    how_to/usage
+   how_to/options
 

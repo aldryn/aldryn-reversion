@@ -24,8 +24,9 @@ Usage
 *****
 
 Please refer to  `documentation
-<http://aldryn-reversions.readthedocs.org/en/latest/how_to/usage.html>`_.
-Or `Aldryn Reversion documentation index <http://aldryn-reversions.readthedocs.org>`_,
+<http://aldryn-reversions.readthedocs.org/en/latest/how_to/usage.html>`_. Or
+`Aldryn Reversion documentation index
+<http://aldryn-reversions.readthedocs.org>`_,
 
 
 ------------
@@ -37,6 +38,7 @@ Requirements
 * django-reversion
 
 **Optional:**
+
 * django CMS 3.0.12 or later
 * django-parler
 

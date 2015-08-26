@@ -2,7 +2,7 @@
 Options
 #######
 
-Main usage is described in :doc:`/how_to/usage`.
+Main usage is described in :doc:`how_to/usage`.
 
 ``follow_placeholders`` - The 'follow_placeholders' class property is
 introduced and is, by default, True. If set to False in the implmementing class
