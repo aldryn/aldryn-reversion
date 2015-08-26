@@ -12,9 +12,9 @@ i.e. Django-cms placeholder fields or translatable parler fields.
 This is possible because of additional logic to add those models into revision
 context (via adding those models to follow).
 
-~~~~~~~~~~~~~~~~~~
+******************
 Revert and recover
-~~~~~~~~~~~~~~~~~~
+******************
 
 Be aware that currently reverting revision just reverts all versions that are
 related to selected revision (history point). Because of that you might be in
@@ -28,9 +28,9 @@ deleted at the moment of reverse or recover actions that would lead to database
 passing their names to follow keyword argument for
 ``version_controlled_content`` as mentionned in :doc:`how_to/usage`.
 
-~~~~~~~~~~~~~~~~~~
+******************
 Admin registration
-~~~~~~~~~~~~~~~~~~
+******************
 
 If you cannot see ``recover deleted`` button on model's changelist admin view
 or you cannot access 'history revert' mechanism - most likely this model is not
