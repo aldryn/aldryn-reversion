@@ -25,16 +25,16 @@ For the model, add ``@version_controlled_content`` as a decorator::
 If your model has foreign key relations, use the ``follow`` property from
 ``django-reversions`` when applying the decorator::
 
+    @version_controlled_content(follow=['my_fk_field'])
     class MyModel(models.Model):
+        my_fk_field = models.ForeignKey(OtherModel)
         ...
 
-.. todo:: this seems to be missing ^^^
 
 This also add the related objects as version-controlled content.
 
-.. todo:: We need to explain why related models should *also* be registered independently
+.. note:: These related models should also be registered with django-reversion in their own right.
 
-.. note:: These related models should also be should also be registered with django-reversion in their own right.
 
 
 Options
@@ -47,8 +47,13 @@ than the ``@version-controlled-content`` decorator.
 ``follow_placeholders``
 -----------------------
 
-By default, a model's Placeholder fields are versioned. Setting ``follow_placeholders`` to
-``False`` disables this behaviour. Pass this option when registering the model with reversion::
+By default, a model's Placeholder fields are versioned (in case of using
+``@version-controlled-content`` decorator). Setting ``follow_placeholders``
+to ``False`` disables this behaviour. In this case *changes to plugins inside
+this placeholder* fields are not revisioned but if we change the placeholder
+object this field points to, that change will be picked up by reversion.
+
+Pass this option when registering the model with reversion::
 
     @reversion.register(
         adapter_cls=ContentEnabledVersionAdapter,
@@ -57,12 +62,8 @@ By default, a model's Placeholder fields are versioned. Setting ``follow_placeho
     )
     class MyModel(models.Model):
         ...
-
-.. todo:: The following comment is unclear
-
-        # but theif we change the placeholder object this field points to, that
-        # change will be picked up by reversion.
         placeholder = PlaceholderField()
+
 
 
 .. _follow:
@@ -70,9 +71,20 @@ By default, a model's Placeholder fields are versioned. Setting ``follow_placeho
 ``follow``
 ----------
 
-.. todo:: use of follow needs to be documented
+If yor model has FK relations you can use ``follow`` property from
+``django-reversions`` when applying decorator: ::
 
-.. todo:: What other arguments can be passed?
+    @version_controlled_content(follow=['my_fk_relation', 'other_fk_relation'])
+    class MyModel(models.Model):
+        ...
+        my_fk_relation = models.ForeignKey(OtherModel)
+        other_fk_relation = models.ForeignKey(OtherModel)
+
+
+In fact you should be able to also use other ``django-reversion`` options that
+are available for ``revision.register`` as described in
+`Advanced model registration
+<http://django-reversion.readthedocs.org/en/latest/api.html#advanced-model-registration>`_
 
 
 .. _admin_registration:
