@@ -1,13 +1,15 @@
-================
+################
 Aldryn Reversion
-================
+################
 
 |PyPI Version| |Build Status| |Coverage Status| |codeclimate| |requires_io|
 
+***********
 Description
-~~~~~~~~~~~
+***********
 
-Support for django-reversion on models with translatable (using django-parler)
+A collection of shared helpers and mixins to provide support for
+django-reversion on models with translatable (using django-parler)
 fields and/or django-cms placeholder fields.
 
 Note: ::
@@ -18,18 +20,39 @@ Note: ::
     revisions.
 
 
---------------------
-Installation & Usage
---------------------
+*****
+Usage
+*****
 
-Aldryn Platform Users
-~~~~~~~~~~~~~~~~~~~~~
+Please refer to  `documentation
+<http://aldryn-reversions.readthedocs.org/en/latest/how_to/usage.html>`_. Or
+`Aldryn Reversion documentation index
+<http://aldryn-reversions.readthedocs.org>`_,
 
-TODO
+
+************
+Requirements
+************
+
+* Python 2.6 or 2.7
+* Django 1.6, 1.7 or 1.8
+* django-reversion
+
+Optional
+========
+
+* django CMS 3.0.12 or later
+* django-parler
 
 
-Manual Installation
-~~~~~~~~~~~~~~~~~~~
+************
+Installation
+************
+
+Most likely you don't need to install this addon by yourself, and it is
+installed as a dependency for another addon.
+If you do need to install this addon manually, just follow those steps:
+
 
 1) Run `pip install aldryn-reversion`.
 
@@ -37,83 +60,13 @@ Manual Installation
 
     INSTALLED_APPS = [
         …
+        'reversion',
         'aldryn_reversion',
         …
     ]
 
 3) (Re-)Start your application server.
 
-
-Usage
-~~~~~
-
-Using Aldryn Reversion in your project is relatively simple.
-
-There are two parts. Adding a registration decorator to your model and adding a
-mixin to your admin class definition for the same model.
-
-For the model, add ``version_controlled_content`` as a decorator like so: ::
-
-    from aldryn-reversion.core import version_controlled_content
-
-    @version_controlled_content
-    class MyModel(models.Model):
-        ...
-
-If yor model has FK relations you can use `follow` property from
-`django-reversions` when applying decorator: ::
-
-    @version_controlled_content(follow=['my_fk_relation', 'other_fk_relation'])
-    class MyModel(models.Model):
-        ...
-
-This would also add related objects into revision's content. **Note** that they
-should also be registered with reversions!
-
-For tha admin, simply replace ``PlaceholderAdminMixin`` with
-``VersionedPlaceholderAdminMixin`` to your Admin class for any model's that
-include placeholders that should be versioned like so: ::
-
-    from aldryn-reversion.admin import VersionedPlacholderAdminMixin
-
-    class MyModelAdmin(VersionedPlacholderAdminMixin, admin.ModelAdmin):
-        ...
-
-You can access revisions from model's admin change form.
-**Important** with current version of Aldryn Reverion when you will restore
-certain revision you will also restore all objects that are present in the same
-revision to a state which was saved with that revision.
-
-You can access recover view form model's admin change list view. Recover view
-will allow you to restore deleted object with translations that are belong to
-it. Also if FK relations were registered with `follow` property and they are
-required for this object - they should be restored also. If user has an ability
-to restore required objects manually - he will need to restore them manually,
-otherwise they will be restored automatically to state at that revision.
-
-Options
-~~~~~~~
-
-``follow_placeholders`` - The 'follow_placeholders' class property is
-introduced and is, by default, True. If set to False in the implmementing class
-allows the class to implement reversion, but without considering the placeholder
-field(s) it contains.
-
-To apply aldryn-reversion to a class but ignore the contents of its
-placeholderfield(s), register it like so: ::
-
-    @reversion.register(
-        adapter_cls=ContentEnabledVersionAdapter,
-        follow_placeholders=False,
-        revision_manager=reversion.default_revision_manager,
-    )
-    class MyModel(models.Model):
-        # Changes to plugins inside this placeholder fields are not revisioned
-        # but theif we change the placeholder object this field points to, that
-        # change will be picked up by reversion.
-        placeholder = PlaceholderField()
-
-instead of using the shortcut decorator ``@version-controlled-content``.
 
 .. |PyPI Version| image:: http://img.shields.io/pypi/v/aldryn-reversion.svg
    :target: https://pypi.python.org/pypi/aldryn-reversion
