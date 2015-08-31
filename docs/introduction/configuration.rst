@@ -71,7 +71,7 @@ Pass this option when registering the model with reversion::
 ``follow``
 ----------
 
-If yor model has FK relations you can use ``follow`` property from
+If your model has FK relations you can use ``follow`` property from
 ``django-reversions`` when applying decorator: ::
 
     @version_controlled_content(follow=['my_fk_relation', 'other_fk_relation'])

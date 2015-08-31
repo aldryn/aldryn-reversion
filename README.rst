@@ -1,11 +1,12 @@
-================
+################
 Aldryn Reversion
-================
+################
 
 |PyPI Version| |Build Status| |Coverage Status| |codeclimate| |requires_io|
 
+***********
 Description
-~~~~~~~~~~~
+***********
 
 A collection of shared helpers and mixins to provide support for
 django-reversion on models with translatable (using django-parler)
@@ -29,27 +30,28 @@ Please refer to  `documentation
 <http://aldryn-reversions.readthedocs.org>`_,
 
 
-------------
+************
 Requirements
-------------
+************
 
 * Python 2.6 or 2.7
 * Django 1.6, 1.7 or 1.8
 * django-reversion
 
-**Optional:**
+Optional
+========
 
 * django CMS 3.0.12 or later
 * django-parler
 
 
-------------
+************
 Installation
-------------
+************
 
 Most likely you don't need to install this addon by yourself, and it is
 installed as a dependency for another addon.
-If you do need to install this addon manually, just follow thses steps:
+If you do need to install this addon manually, just follow those steps:
 
 
 1) Run `pip install aldryn-reversion`.
