@@ -48,9 +48,8 @@ Installation
 ------------
 
 Most likely you don't need to install this addon by yourself, and it is
-installed as a dependency for other addon.
-But in case if you are a developer or any other reason to install it manually
-just follow those simple steps:
+installed as a dependency for another addon.
+If you do need to install this addon manually, just follow thses steps:
 
 
 1) Run `pip install aldryn-reversion`.

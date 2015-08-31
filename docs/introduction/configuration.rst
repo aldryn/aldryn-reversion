@@ -31,7 +31,7 @@ If your model has foreign key relations, use the ``follow`` property from
         ...
 
 
-This also add the related objects as version-controlled content.
+This also adds the related objects as version-controlled content.
 
 .. note:: These related models should also be registered with django-reversion in their own right.
 

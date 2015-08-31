@@ -12,7 +12,8 @@ Revert and recover
 
 Be aware that reverting a model instance will also revert all related (i.e. via a foreign key)
 object instances to the same history point - this will not always be desired behaviour, and
-your may not be what is expected by your site content editors who use the feature.
+this will not always be the desired behaviour, and may not be what is expected
+by your site's content editors.
 
 
 Possible database integrity errors

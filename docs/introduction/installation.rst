@@ -22,7 +22,7 @@ or to install from the latest source tree::
    This should also install ``django-reversion`` (which is required) into your
    env.
 
-To use aldryn-reversions at a full power you might want to use it with
+To use aldryn-reversions at its full potential you might want to use it with
 django CMS and django-parler. In that case we'll assume you have a
 django CMS (version 3.x) project up and running.
 
@@ -52,7 +52,8 @@ Add below apps to ``INSTALLED_APPS``: ::
    ``INSTALLED_APPS`` only once, since it might be already there if you are
    using django CMS.
 
-If you planning to use optional packages also add them to ``INSTALLED_APPS``.
+If you are planning to use the optional packages add them to
+``INSTALLED_APPS`` too.
 
 ****************************
 Prepare the database and run
@@ -68,5 +69,5 @@ For Aldryn users
 If you are using *ANY* addon that is relying on ``aldryn-reversion`` it means
 that you already have ``aldryn-reversion`` installed and configured.
 
-If you are developing Aldryn addon and want to use ``aldryn-reversion``
+If you are developing an Aldryn addon and want to use ``aldryn-reversion``
 features in it - please refer to :doc:`configuration`

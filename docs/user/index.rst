@@ -2,65 +2,67 @@
 Using Aldryn Reversion
 ######################
 
-After you set up and configured your models (they are registered for revisions
-support) you can start using ``aldryn-reversion`` end-user features.
+After you set up and configured your models so that they are registered
+for revision support you can start using the ``aldryn-reversion``
+end-user features.
 
 ************************
 Restoring object version
 ************************
 
-Most likely you already know that django keeps track of object changes also
-known as history, it is available on object admin edit form on the top of the
-page. With ``aldryn-reversion`` that history has more features.
-As soon as object is created - 'Initial version' is created and treated as
+Django keeps track of changes to objects and makes them available, as
+history, for the object's admin edit form. With ``aldryn-reversion`` that
+history has more features.
+As soon as object is created, an 'Initial version' is created and treated as
 restore point.
 
-Each record in history has a date which is now a link to restore revision
-form.
-When you need to restore any object version you just need to click on desired
-date, check what will be changed  and either restore that revision or go back
-to object history.
+For each record in an object's history you'll now find a link to the
+'restore revision' form.
+To restore a previous object version, click the desired date, check what will
+be changed, and if you are satisfied with the proposed changes, confirm to
+restore the revision.
 
 .. note::
-    Be aware that in current implementation revision is restored as is.
+    Note that the revision will be restored 'as is' - all objects related to
+    the object you are restoring will also be restored to the same revision.
     That means that any related object that is also stored in this revision
     would be restored at the point at which that object was stored.
     This is applicable to whole relation tree (if follow was configured).
 
-As soo as you restore object version the object would be at the version at
-which it was kept and you will be redirected to object edit form so that you
-can change object if you need to.
+Once the the object is restored its content will be set to revision you've
+chosen and you will be redirect to the object's edit form.
 
-You might also want to change related object (if applicable) since they also
-will be affected.
+You might also want to modify some of the related objects, since they too
+will be affected by restoring to a previous revision.
 
 .. note::
-   If :ref:`follow` was not configured properly and related object was not
-   stored in selected revision - you might end up with getting an
-   ``IntegrityError``. In this case you first need to restore related object
-   that was deleted.
+   If :ref:`follow` was not configured properly and as a result the related
+   objects were not stored as part of the selected revision, you could end
+   up with getting an ``IntegrityError``. In such a case you will first need
+   to restore the related object.
 
 
-*************************
-Recovering deleted object
-*************************
+**************************
+Recovering deleted objects
+**************************
 
-Second most powerful feature of ``aldryn-reversion`` is to recover deleted
-objects.
-You may find it on model's change list page after clicking on the
-``Recover deleted`` button on top of that page.
+The second most powerful feature of ``aldryn-reversion`` is the ability to
+recover deleted objects.
+You can find this function on a model's change list page - a
+``Recover deleted`` is available near the top of the page.
 
-If there are deleted objects (which do not exist in database but there is an
-object version stored with reversions) they will be listed on recover page.
+If there are any deleted objects which do not exist in the database but for
+which there is a version stored by reversions, they will be listed on the
+recovery page.
 
-To recover deleted object simply choose an object, check the recover page
-instructions and if there is no conflicts on related fields (FKs) click on
-recover button with a label of ``Yes, I'm sure``.
+To recover a deleted object, simply choose an object, check the instructions
+and if there are no conflicts for the related fields (FKs) click on
+the button with the label ``Yes, I'm sure``.
 
-However if there are any conflicts that might be resolved by user (object
-model was registered with ``aldryn-reversions`` decorator AND a with admin
-mixin for model admin registration) you will see a list of links to recover
-related objects first.
+If there are any conflicts that can be resolved by the user (the model was
+registered with the ``aldryn-reversions`` decorator and with admin mixin)
+the user will be presented with a list of links for recovering the related
+objects first.
 
 .. note::
     In current implementation only required FKs are considered as a conflicts,
@@ -72,49 +74,48 @@ related objects first.
     mixin - you can recover related object first and then return to restore
     this object.
 
-In case if related object was not registered with admin mixin but it was
-registered for revision tracking ``aldryn-reversion`` would try to solve
-conflict automatically by examining required FK relations.
-In case of success you might be able to restore the object and objects that
-are required relations to this object.
+If a related object was not registered with the admin mixin but was
+registered for revision tracking ``aldryn-reversion`` will attempt to resolve
+the conflict automatically by examining the required FK relations.
+If automatic conflict resolution was successful you will be able to restore
+the object and its required relations.
 
 .. note::
-    Be aware that automatic resolver would try to use selected object reivison
-    which means that related objects would be restored at version at which
-    they were in that revision (not the object latest version).
-    So be sure to examine related objects and edit them to the desired state.
+    Note that automatic conflict resolution will try to use the selected
+    object revision. Related objects will be restored to the version at
+    which they were in that revision - not the object's latest version.
+    Be sure to examine the related objects carefully and edit them so that
+    they are in the desired state.
 
 ****************************
 Translations (django-parler)
 ****************************
 
-If model that is registered with ``aldryn-reversion`` contains translatable
-fields each form (restore object version and recover deleted object) will
-also have a choice to select translations to restore.
+When a model that is registered with ``aldryn-reversion`` contains translatable
+fields, recover form  will also have the option to select translations
+to restore.
 In that case at least one translation should be selected.
 
 *********************
 CMS placeholder field
 *********************
 
-If model has ``placeholder`` fields and ``aldryn-reversion`` was not
-configured to ignore those fields they will also be tracked as a part of
-object revision.
-That means that in case if placeholder object that represents model's
-placeholder field would be deleted - you will be notified that it will be
-restored (in case of recover process).
+If a model has ``placeholder`` fields and ``aldryn-reversion`` was not
+configured to ignore those fields, they will also be tracked as part of
+object's revision.
+In such cases, when the placeholder object representing the parent model's
+placeholder field is deleted, you will be notified and it will be restored as
+part of the recovery process.
 
 .. note::
-    If only placeholder object was deleted (not the plugins that it holds)
-    then you will be able to get palceholder AND plugins, most likely
-    plugins were not changed (relation to placeholder).
-    But if palceholder AND related plugins were deleted then restoring
-    placeholder object won't restore the plugins, which means that it will
-    be just an empty placeholder. Though you might be able to restore plugins
-    as well if after recovering deleted object you will restore object version
-    which contains plugins as well.
+    If only the placeholder object is deleted (and not the plugins that it
+    holds) you will be able to restore both the placeholder and the
+    plugins - in most cases the plugins will not have changed. If, on the
+    other hand, both the placeholder and the related plugins were deleted,
+    the result would be an empty placeholder. You may still be able to
+    restore the plugins if, after recovering the deleted object, you restore
+    an object version which contains the plugins.
 
-In case of reverting history it would be restored to selected objcet version
-revision automatically. That is happening due to current revert implementation.
-That means that you might be interested to checking and/or editing restored
-object and it's plugins content.
+When reverting history, the object will be restored to the corresponding
+revision automatically, so it may be a good idea to check the restored
+object and its plugins and edit them where necessary.
