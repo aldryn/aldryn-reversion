@@ -122,4 +122,3 @@ it.
 If foreign key relations have been registered with the ``follow`` property and they are
 required for this object, they too will be restored automatically, to the state captured in the
 relevant revision.
-

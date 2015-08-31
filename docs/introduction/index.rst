@@ -7,4 +7,3 @@ Introduction
 
    installation
    configuration
-
