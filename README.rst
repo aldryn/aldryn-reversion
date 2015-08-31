@@ -25,9 +25,7 @@ Usage
 *****
 
 Please refer to  `documentation
-<http://aldryn-reversions.readthedocs.org/en/latest/how_to/usage.html>`_. Or
-`Aldryn Reversion documentation index
-<http://aldryn-reversions.readthedocs.org>`_,
+<http://aldryn-reversion.readthedocs.org/en/latest/>`_.
 
 
 ************
