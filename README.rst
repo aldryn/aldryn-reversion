@@ -36,6 +36,7 @@ Requirements
 * Django 1.6, 1.7 or 1.8
 * django-reversion
 
+
 Optional
 ========
 
@@ -47,10 +48,8 @@ Optional
 Installation
 ************
 
-Most likely you don't need to install this addon by yourself, and it is
-installed as a dependency for another addon.
-If you do need to install this addon manually, just follow those steps:
-
+Most likely you won't need to install this addon - it will be installed as a dependency for some
+other addon. If you do need to install it manually, follow these steps:
 
 1) Run `pip install aldryn-reversion`.
 
@@ -65,6 +64,9 @@ If you do need to install this addon manually, just follow those steps:
 
 3) (Re-)Start your application server.
 
+`More detailed installation guidance
+<http://aldryn-reversion.readthedocs.org/en/latest/introduction/installation.html>`_ is also
+available.
 
 .. |PyPI Version| image:: http://img.shields.io/pypi/v/aldryn-reversion.svg
    :target: https://pypi.python.org/pypi/aldryn-reversion

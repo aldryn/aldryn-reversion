@@ -2,8 +2,8 @@
 Installation
 ############
 
-Most likely you don't need to install this addon by yourself, and it is
-installed as a dependency for other addon.
+Most likely you won't need to install this addon - it will be
+installed as a dependency for some other addon.
 
 *******************
 Installing packages
@@ -22,9 +22,8 @@ or to install from the latest source tree::
    This should also install ``django-reversion`` (which is required) into your
    env.
 
-To use aldryn-reversions at its full potential you might want to use it with
-django CMS and django-parler. In that case we'll assume you have a
-django CMS (version 3.x) project up and running.
+You'll get the most benefit from aldryn-reversion if you're using it with django CMS and
+django-parler. We'll assume you have a django CMS (version 3.x) project up and running.
 
 If you need to set up a new django CMS project, follow the instructions
 in the `django CMS tutorial
@@ -34,11 +33,11 @@ In this case ``django-parler`` should be installed as a dependency for
 django CMS.
 
 
-***********
-settings.py
-***********
+***************
+``settings.py``
+***************
 
-Add below apps to ``INSTALLED_APPS``: ::
+Edit your ``INSTALLED_APPS`` to include the required applications::
 
     INSTALLED_APPS = [
         …
@@ -55,6 +54,8 @@ Add below apps to ``INSTALLED_APPS``: ::
 If you are planning to use the optional packages add them to
 ``INSTALLED_APPS`` too.
 
+.. todo:: say something about what these optional packages are
+
 ****************************
 Prepare the database and run
 ****************************
@@ -66,8 +67,8 @@ application, then ``python manage.py runserver``.
 For Aldryn users
 ****************
 
-If you are using *ANY* addon that is relying on ``aldryn-reversion`` it means
+If you are using *any* addon that relies on ``aldryn-reversion`` it means
 that you already have ``aldryn-reversion`` installed and configured.
 
 If you are developing an Aldryn addon and want to use ``aldryn-reversion``
-features in it - please refer to :doc:`configuration`
+features in it, please refer to :doc:`configuration`
