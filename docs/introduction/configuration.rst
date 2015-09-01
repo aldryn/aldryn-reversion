@@ -36,7 +36,6 @@ This also adds the related objects as version-controlled content.
 .. note:: These related models should also be registered with django-reversion in their own right.
 
 
-
 Options
 =======
 
@@ -65,14 +64,13 @@ Pass this option when registering the model with reversion::
         placeholder = PlaceholderField()
 
 
-
 .. _follow:
 
 ``follow``
 ----------
 
-If your model has FK relations you can use ``follow`` property from
-``django-reversions`` when applying decorator: ::
+If your model has foreign key relations, whose destination objects you also want versioned,
+use the ``follow`` property from ``django-reversions`` when applying the decorator::
 
     @version_controlled_content(follow=['my_fk_relation', 'other_fk_relation'])
     class MyModel(models.Model):
@@ -81,7 +79,10 @@ If your model has FK relations you can use ``follow`` property from
         other_fk_relation = models.ForeignKey(OtherModel)
 
 
-In fact you should be able to also use other ``django-reversion`` options that
+Other options
+-------------
+
+You should be able to also use other ``django-reversion`` options that
 are available for ``revision.register`` as described in
 `Advanced model registration
 <http://django-reversion.readthedocs.org/en/latest/api.html#advanced-model-registration>`_
@@ -93,7 +94,7 @@ are available for ``revision.register`` as described in
 Admin registration
 ******************
 
-For the admin, replace ``PlaceholderAdminMixin`` with ``VersionedPlaceholderAdminMixin`` to the
+For the admin, replace ``PlaceholderAdminMixin`` with ``VersionedPlaceholderAdminMixin`` in the
 ``ModelAdmin`` class for any models that include Placeholders that need to be versioned::
 
     from aldryn-reversion.admin import VersionedPlacholderAdminMixin
@@ -105,9 +106,9 @@ Revisions are accessible from the model's admin change form.
 
 .. important::
 
-   With the current version of Aldryn Reversion, in restoring a revision you will **also** restore
-   all objects that belong to that revision to the state in which they were saved with that
-   revision. This behaviour may not be expected by end-users.
+   In restoring a revision you will **also** restore all objects that belong to that revision to
+   the state in which they were saved with that revision. This behaviour may not be expected by
+   end-users.
 
 
 Deleted objects

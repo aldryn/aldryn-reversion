@@ -11,9 +11,8 @@ Revert and recover
 ==================
 
 Be aware that reverting a model instance will also revert all related (i.e. via a foreign key)
-object instances to the same history point - this will not always be desired behaviour, and
-this will not always be the desired behaviour, and may not be what is expected
-by your site's content editors.
+object instances to the same history point - this will not always be the desired behaviour, and may
+not be what is expected by your site's content editors.
 
 
 Possible database integrity errors
@@ -21,8 +20,8 @@ Possible database integrity errors
 
 If:
 
-* a model has non-nullable foreign keys (``null=False``), and
-* these foreign keys are not registered using the :ref:`follow` option, and
+* a model has non-nullable foreign keys (``null=False``), *and*
+* these foreign keys are not registered using the :ref:`follow` option, *and*
 * a reversion action deletes a related object
 
 then you will face a database ``IntegrityError``.
