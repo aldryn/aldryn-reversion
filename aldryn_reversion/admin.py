@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+from distutils.version import LooseVersion
+
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.contrib import messages
@@ -25,6 +27,10 @@ from .utils import (
     get_deleted_placeholders_for_object, object_is_translation,
     get_translation_info_message,
 )
+
+# since reversion version is a tuple - convert it to string
+DJANGO_REVERSION_VERSION = LooseVersion(
+    '.'.join([str(num) for num in reversion.version.__version__]))
 
 
 class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
@@ -63,7 +69,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         """
         return {'plugin_id': plugin.id, 'plugin': force_text(plugin)}
 
-    def _create_revision(self, plugin, user=None, comment=None):
+    def _create_aldryn_revision(self, plugin, user=None, comment=None):
         #
         # _get_attached_objects returns the models which define the
         # PlaceholderField to which this placeholder is linked. Theoretically it
@@ -87,14 +93,14 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             request, placeholder, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Added plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin, request.user, comment)
 
     def post_edit_plugin(self, request, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_edit_plugin(
             request, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Edited plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin, request.user, comment)
 
     def post_move_plugin(self, request, source_placeholder, target_placeholder,
                          plugin):
@@ -102,14 +108,26 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             request, source_placeholder, target_placeholder, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Moved plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin, request.user, comment)
 
     def post_delete_plugin(self, request, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_delete_plugin(
             request, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Deleted plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin, request.user, comment)
+
+    def get_revision_data(self, request, object):
+        """
+        Backward compatible method to get revision data. Returns list of objects
+        that should be used to create revision.
+        if django-reversion < 1.9.0 calls to super method since it exists,
+        if django-reversion >= 1.9.0 returns [object].
+        """
+        if DJANGO_REVERSION_VERSION < LooseVersion('1.9.0'):
+            return super(VersionedPlaceholderAdminMixin,
+                         self).get_revision_data(request, object)
+        return [object]
 
     def log_addition(self, request, obj):
         """
