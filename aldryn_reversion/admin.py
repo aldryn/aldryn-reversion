@@ -117,18 +117,6 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         comment = _('Deleted plugin #%(plugin_id)s: %(plugin)s') % comment_dict
         self._create_aldryn_revision(plugin, request.user, comment)
 
-    def get_revision_data(self, request, object):
-        """
-        Backward compatible method to get revision data. Returns list of objects
-        that should be used to create revision.
-        if django-reversion < 1.9.0 calls to super method since it exists,
-        if django-reversion >= 1.9.0 returns [object].
-        """
-        if DJANGO_REVERSION_VERSION < LooseVersion('1.9.0'):
-            return super(VersionedPlaceholderAdminMixin,
-                         self).get_revision_data(request, object)
-        return [object]
-
     def log_addition(self, request, obj):
         """
         Override reversion.VersionAdmin log addition to provide useful message.
@@ -138,8 +126,16 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             "Initial version of %(object_repr)s.%(translation_info)s") % {
                 'object_repr': build_obj_repr(obj),
                 'translation_info': get_translation_info_message(obj)}
+        objects = [obj]
+        # django-reversion >1.9.0 no longer has get_revision_instances
+        # but for supporting older versions we will check for it and use
+        if hasattr(self, 'get_revision_instances'):
+            objects += self.get_revision_instances(request, obj)
+        # previous implementation was to use self.get_revision_data
+        # but that was also removed in 1.9.0 since it was a duplicate of logic
+        # that is already present in save_revision or its related calls.
         self.revision_manager.save_revision(
-            self.get_revision_data(request, obj),
+            objects,
             user=request.user,
             comment=comment,
             ignore_duplicates=self.ignore_duplicate_revisions,
