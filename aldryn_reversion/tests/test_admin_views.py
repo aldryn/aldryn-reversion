@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from django.db import transaction
 
 import reversion
 from reversion.models import Version
 
 from django.contrib import admin
 from django.core.urlresolvers import reverse, NoReverseMatch
+
+from cms import api
 
 from aldryn_reversion.test_helpers.test_app.models import (
     SimpleRegistered, SimpleNoAdmin, SimpleFK, SimpleRequiredFK,
@@ -309,3 +312,55 @@ class ReversionRevisionAdminTestCase(AdminUtilsMixin,
         self.simple_registered = SimpleRegistered.objects.get(
             pk=self.simple_registered.pk)
         self.assertEquals(self.simple_registered.position, initial_position)
+
+
+class AdminUtilsMethodsTestCase(AdminUtilsMixin,
+                                CMSRequestBasedMixin,
+                                HelperModelsObjectsSetupMixin,
+                                ReversionBaseTestCase):
+
+    def test_create_aldryn_revision(self):
+        # would be used to get admin instance
+        with_placeholder_version = get_latest_version_for_object(
+            self.with_placeholder)
+
+        admin_instance = self.get_admin_instance_for_object(
+            with_placeholder_version)
+        plugin = api.add_plugin(self.with_placeholder.content,
+                                'TextPlugin', language='en')
+        plugin.body = 'Initial text'
+        plugin.save()
+        # ensure there was no versions for plugin before
+        self. assertEqual(reversion.get_for_object(plugin).count(), 0)
+        with transaction.atomic():
+            with reversion.create_revision():
+                admin_instance._create_aldryn_revision(
+                    plugin,
+                    comment='New aldryn revision with initial plugin')
+        # ensure there is at least one version after create aldryn revision
+        self. assertEqual(reversion.get_for_object(plugin).count(), 1)
+        new_plugin_text = 'test plugin content was changed'
+        plugin.body = new_plugin_text
+        plugin.save()
+        with transaction.atomic():
+            with reversion.create_revision():
+                admin_instance._create_aldryn_revision(
+                    plugin,
+                    comment='New aldryn revision with initial plugin')
+
+        # ensure there is at least one version after create aldryn revision
+        self. assertEqual(reversion.get_for_object(plugin).count(), 2)
+        latest_plugin = plugin._meta.model.objects.get(pk=plugin.pk)
+
+        # ensure text is latest
+        self.assertEqual(latest_plugin.body, new_plugin_text)
+        # ensure text is initial if reverted to previous revision
+        prev_version = reversion.get_for_object(self.with_placeholder)[1]
+        prev_version.revision.revert()
+        # refresh from db
+        latest_plugin = plugin._meta.model.objects.get(pk=plugin.pk)
+        # ensure plugin text was chagned. Note however that there might be
+        # different paths to ensure that text is chagned for CMSPlugin
+        # This only checks that plugin content (which is text plugin not the cms
+        # is reverted, so be careful.
+        self.assertEqual(latest_plugin.body, 'Initial text')
