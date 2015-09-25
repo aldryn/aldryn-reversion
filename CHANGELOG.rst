@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+X.X.X (XXXX-XX-XX)
+------------------
+
+* Fix compatibility with django-reversions >=1.9.0
+
 1.0.0 (2015-08-31)
 ------------------
 

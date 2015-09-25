@@ -126,19 +126,11 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             "Initial version of %(object_repr)s.%(translation_info)s") % {
                 'object_repr': build_obj_repr(obj),
                 'translation_info': get_translation_info_message(obj)}
-        objects = [obj]
-        # django-reversion >1.9.0 no longer has get_revision_instances
-        # but for supporting older versions we will check for it and use
-        if hasattr(self, 'get_revision_instances'):
-            for additional_object in self.get_revision_instances(
-                    request, obj):
-                if additional_object not in objects:
-                    objects.append(additional_object)
         # previous implementation was to use self.get_revision_data
         # but that was also removed in 1.9.0 since it was a duplicate of logic
         # that is already present in save_revision or its related calls.
         self.revision_manager.save_revision(
-            objects,
+            [obj],
             user=request.user,
             comment=comment,
             ignore_duplicates=self.ignore_duplicate_revisions,
