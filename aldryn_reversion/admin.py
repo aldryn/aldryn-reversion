@@ -2,8 +2,6 @@
 
 from __future__ import unicode_literals
 
-from distutils.version import LooseVersion
-
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.contrib import messages
@@ -27,10 +25,6 @@ from .utils import (
     get_deleted_placeholders_for_object, object_is_translation,
     get_translation_info_message,
 )
-
-# since reversion version is a tuple - convert it to string
-DJANGO_REVERSION_VERSION = LooseVersion(
-    '.'.join([str(num) for num in reversion.version.__version__]))
 
 
 class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
