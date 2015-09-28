@@ -63,7 +63,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         """
         return {'plugin_id': plugin.id, 'plugin': force_text(plugin)}
 
-    def _create_revision(self, plugin, user=None, comment=None):
+    def _create_aldryn_revision(self, plugin, user=None, comment=None):
         #
         # _get_attached_objects returns the models which define the
         # PlaceholderField to which this placeholder is linked. Theoretically it
@@ -87,14 +87,14 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             request, placeholder, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Added plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin, request.user, comment)
 
     def post_edit_plugin(self, request, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_edit_plugin(
             request, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Edited plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin, request.user, comment)
 
     def post_move_plugin(self, request, source_placeholder, target_placeholder,
                          plugin):
@@ -102,14 +102,14 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             request, source_placeholder, target_placeholder, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Moved plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin, request.user, comment)
 
     def post_delete_plugin(self, request, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_delete_plugin(
             request, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Deleted plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin, request.user, comment)
 
     def log_addition(self, request, obj):
         """
@@ -120,8 +120,11 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             "Initial version of %(object_repr)s.%(translation_info)s") % {
                 'object_repr': build_obj_repr(obj),
                 'translation_info': get_translation_info_message(obj)}
+        # previous implementation was to use self.get_revision_data
+        # but that was also removed in 1.9.0 since it was a duplicate of logic
+        # that is already present in save_revision or its related calls.
         self.revision_manager.save_revision(
-            self.get_revision_data(request, obj),
+            [obj],
             user=request.user,
             comment=comment,
             ignore_duplicates=self.ignore_duplicate_revisions,

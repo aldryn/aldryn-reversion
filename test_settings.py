@@ -6,6 +6,7 @@ django_version = LooseVersion(get_version())
 
 HELPER_SETTINGS = {
     'INSTALLED_APPS': [
+        'djangocms_text_ckeditor',
         'parler',
         'reversion',
         'aldryn_reversion',
