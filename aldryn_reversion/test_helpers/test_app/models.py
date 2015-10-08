@@ -44,7 +44,7 @@ class WithPlaceholder(models.Model):
     """
     Simple model with PlaceholderField.
     """
-    content = PlaceholderField('Helper model Content')
+    content = PlaceholderField('WithPlaceholder Content ph')
 
 
 @version_controlled_content(follow=['simple_relation'])
@@ -74,7 +74,7 @@ class ComplexOneFK(TranslatableModel):
     translations = TranslatedFields(
         complex_description=models.TextField(max_length=500)
     )
-    complex_content = PlaceholderField('Complex Content')
+    complex_content = PlaceholderField('ComplexOneFK complex_content ph')
     simple_relation = models.ForeignKey(WithPlaceholder)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -85,7 +85,7 @@ class BlankFK(models.Model):
     """
     Simple model with not required FK relation.
     """
-    simple_relation = models.ForeignKey(SimpleRegistered, blank=True)
+    simple_relation = models.ForeignKey(SimpleRegistered, blank=True, null=True)
 
 
 @version_controlled_content(follow=['first_relation', 'second_relation'])

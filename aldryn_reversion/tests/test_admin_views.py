@@ -255,6 +255,8 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
         self.assertEqual(SimpleNoAdmin.objects.count(), 1)
 
 
+
+
 class ReversionRevisionAdminTestCase(AdminUtilsMixin,
                                      CMSRequestBasedMixin,
                                      HelperModelsObjectsSetupMixin,
