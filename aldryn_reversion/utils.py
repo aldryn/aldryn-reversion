@@ -206,14 +206,6 @@ class RecursiveRevisionConflictResolver(object):
         else:
             self.initial_exclude = []
 
-    def has_conflicts(self):
-        """
-        Check if there are any conflicts.
-        :return: bool
-        """
-        # invoke get_conflict_fks_versions
-        pass
-
     def _update_resolved(self, versions):
         """
         Update resolved versions.
