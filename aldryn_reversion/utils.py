@@ -79,7 +79,7 @@ def get_fk_models(obj, blank=None):
                 'model': fk.rel.to,
                 'content_type': ContentType.objects.get_for_model(fk.rel.to),
                 'blank': fk.blank,
-                }
+            }
             fk_relations.append(relation)
     return fk_relations
 
@@ -190,65 +190,6 @@ def exclude_resolved(to_exclude, objects):
     of revision.models.Versions.
     """
     return [item for item in objects if item not in to_exclude]
-
-
-def resolve_conflicts(version, to_resolve):
-    """
-    Resolve conflicts recursively. Assumes that version.object is deleted.
-    If conflict object is translatable and/or has placeholders which were
-    deleted - adds it's translations to resulting Version's list.
-    If version object has required FKs that were deleted - runs resolve
-    conflict against that object (recursion).
-    Does not checks if current version was already processed, so might have
-    issues with resolving cycle relations.
-    """
-    obj = version.object_version.object
-    revision = version.revision
-
-    other_conflicts = get_conflict_fks_versions(obj, version, revision)
-
-    resolved_versions = [version]
-    deleted_placeholders = get_deleted_placeholders_for_object(obj, revision)
-    if deleted_placeholders:
-        resolved_versions += deleted_placeholders
-
-    # check for translations
-    translatable = hasattr(obj, 'translations')
-    if translatable:
-        translation_versions = get_translations_versions_for_object(
-            obj, revision)
-        resolved_versions += list(translation_versions)
-
-    # base case
-    if not to_resolve and not other_conflicts:
-        return resolved_versions
-
-    # if only found conflicts left
-    if other_conflicts and not to_resolve:
-        # if there is duplicates - exclude them
-        return resolved_versions + resolve_conflicts(
-            other_conflicts[0],
-            exclude_resolved(resolved_versions, other_conflicts[1:]))
-
-    # no conflicts, but other work left
-    if not other_conflicts and to_resolve:
-        # if there is duplicates - exclude them
-        return resolved_versions + resolve_conflicts(
-            to_resolve[0],
-            exclude_resolved(resolved_versions, to_resolve[1:]))
-
-    # if we have a lot of work...
-    if other_conflicts and to_resolve:
-        # resolve our conflicts first
-        # filter for duplicate versions. ensures that item is either in
-        # other_conflicts or in to_resolve. Also if it was resolved in
-        # current step - exclude it.
-        new_to_resolve = [
-            item for item in other_conflicts[1:] + to_resolve if item in set(
-                other_conflicts[1:] + to_resolve) and
-            item not in resolved_versions]
-        return resolved_versions + resolve_conflicts(
-            other_conflicts[0], new_to_resolve)
 
 
 class RecursiveRevisionConflictResolver(object):

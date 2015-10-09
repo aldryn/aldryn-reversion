@@ -21,9 +21,9 @@ from reversion.models import Version
 from .core import create_revision_with_placeholders
 from .forms import RecoverObjectWithTranslationForm
 from .utils import (
-    get_conflict_fks_versions, resolve_conflicts, build_obj_repr,
+    get_conflict_fks_versions, build_obj_repr,
     get_deleted_placeholders_for_object, object_is_translation,
-    get_translation_info_message,
+    get_translation_info_message, RecursiveRevisionConflictResolver,
 )
 
 
@@ -262,11 +262,11 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
 
         # check if we need to restore placeholder fields
         object_placeholders = get_deleted_placeholders_for_object(obj, revision)
-        # FIXME: Not heavily tested yet
+        # if there are conflicts that cannot be resolved manually by the user
+        # rely on resolver.
         if len(non_reversible_by_user) > 0:
-            to_resolve = resolve_conflicts(
-                non_reversible_by_user[0], non_reversible_by_user[1:])
-            non_reversible_by_user = set(to_resolve)
+            non_reversible_by_user = RecursiveRevisionConflictResolver(
+                non_reversible_by_user[0], non_reversible_by_user[1:]).resolve()
 
         # prepare form kwargs
         restore_form_kwargs = {

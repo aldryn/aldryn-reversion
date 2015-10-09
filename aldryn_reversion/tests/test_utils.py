@@ -11,13 +11,13 @@ from ..utils import (
     get_placeholder_fields_names, get_fk_models,
     get_translations_versions_for_object, get_deleted_objects_versions,
     get_conflict_fks_versions, get_deleted_placeholders,
-    get_deleted_placeholders_for_object, resolve_conflicts,
+    get_deleted_placeholders_for_object,
     RecursiveRevisionConflictResolver,
 )
 
 from .base import (
     ReversionBaseTestCase, HelperModelsObjectsSetupMixin,
-    get_latest_version_for_object
+    get_version_for_object
 )
 from aldryn_reversion.test_helpers.test_app.models import (
     SimpleNoAdmin, SimpleRegistered, WithPlaceholder,
@@ -79,9 +79,6 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
 
         result_not_required = get_fk_models(self.simple_fk, blank=True)
         self.assertEqual(len(result_not_required), 0)
-
-    # TODO:create test case to check for django FK subclasses, not only plain
-    # django FK's.
 
     def test_get_translations_versions_for_object(self):
         # check that object has 2 translation already
@@ -145,10 +142,6 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         custom_versions = Version.objects.filter(pk__in=both_obj_versions_pks)
         result = get_deleted_objects_versions(custom_versions)
         self.assertEqual(len(result), 2)
-        # simple test for exclude is actually excludes versions
-        exclude = {'pk__in': [simple_fk_version.pk]}
-        result = get_deleted_objects_versions(custom_versions, exclude=exclude)
-        self.assertEqual(len(result), 1)
 
     def test_get_conflict_fks_versions_with_simple_models(self):
         # test with object that has no relations
@@ -178,8 +171,6 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
             exclude={'pk': result[0].pk})
         self.assertEqual(len(result), 0)
 
-    # create a test case to test model that have blank false to FK
-    # should detect conflicts
     def test_get_conflict_fks_versions_with_blank_fk_model(self):
         # test with no conflict
         bank_fk_version = reversion.get_for_object(self.blank_fk)[0]
@@ -202,15 +193,6 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         result = get_conflict_fks_versions(
             new_blank_fk, new_blank_fk_version, new_blank_fk_version.revision)
         self.assertEqual(len(result), 0)
-
-    # create test case to test model that have required false to FK
-    # should recover/resolve them correctly if model isnt registered with admin
-        # mixin class
-
-
-
-    # create test case to ceck that complex relations to self are being
-        # handled properly, resolvable, recoverable regardless of required
 
     def test_get_deleted_placeholders(self):
         with_placeholder_version = reversion.get_for_object(
@@ -283,110 +265,34 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
             self.complex_one_fk, complex_one_fk_version.revision)
         self.assertEqual(len(result), 1)
 
-    def test_resolve_conflicts(self):
-        # test with no conflicts
-        #  * no translations, placeholders, fks
-        simple_no_adm_version = get_latest_version_for_object(
-            self.simple_registered)
-        result = resolve_conflicts(simple_no_adm_version, [])
-        self.assertEqual(len(result), 1)
-
-        #  * with translations
-        with_trans_version = get_latest_version_for_object(
-            self.with_translation)
-        result = resolve_conflicts(with_trans_version, [])
-        # one version for the object itself, and 2 for translations
-        self.assertEqual(len(result), 3)
-
-        #  * with placeholders
-        with_ph_version = get_latest_version_for_object(self.with_placeholder)
-        result = resolve_conflicts(with_ph_version, [])
-        self.assertEqual(len(result), 1)
-
-        #  * with fks
-        simple_fk_version = get_latest_version_for_object(self.simple_fk)
-        result = resolve_conflicts(simple_fk_version, [])
-        self.assertEqual(len(result), 1)
-
-        #  * with all of that
-        complex_fk_version = get_latest_version_for_object(self.complex_one_fk)
-        result = resolve_conflicts(complex_fk_version, [])
-        # one version for the object itself, and 2 for translations
-        self.assertEqual(len(result), 3)
-
-        # test with conflicts
-        #  * with simple object
-        self.simple_no_admin.delete()
-        self.assertEqual(SimpleNoAdmin.objects.count(), 0)
-        self.assertEqual(SimpleFK.objects.count(), 0)
-        result = resolve_conflicts(simple_fk_version, [])
-        # one for simple_fk one for simple_fk's relation to simple_no_admin
-        self.assertEqual(len(result), 2)
-
-        #  * with translations,
-        #  * with placeholders,
-        #  * with FKs
-        with_ph_ph_pk = self.with_placeholder.content.pk
-        complex_fk_ph_pk = self.complex_one_fk.complex_content.pk
-        self.with_placeholder.content.delete()
-        self.complex_one_fk.complex_content.delete()
-        self.assertEqual(Placeholder.objects.filter(
-            pk__in=[with_ph_ph_pk, complex_fk_ph_pk]).count(), 0)
-
-        self.with_placeholder.delete()
-        self.assertEqual(WithPlaceholder.objects.count(), 0)
-        self.assertEqual(ComplexOneFK.objects.count(), 0)
-        result = resolve_conflicts(complex_fk_version, [])
-        # 2 for translations, 2 for placeholders, 2 for deleted objects.
-        self.assertEqual(len(result), 6)
-
-        # test with version and prepared to resolve.
-        # for second and third if clauses.
-        self.assertEqual(MultiLevelFK.objects.count(), 0)
-        multi_level_fk_version = get_latest_version_for_object(
-            self.multi_level_fk)
-        result = resolve_conflicts(multi_level_fk_version, [simple_fk_version])
-        # expecting:
-        # [<Version: MultiLevelFK object>, <Version: ComplexOneFK object>,
-        # <Version: Complex Content>, <Version: English>, <Version: German>,
-        # <Version: WithPlaceholder object>, <Version: Helper model Content>,
-        # <Version: SimpleFK object>, <Version: SimpleNoAdmin object>]
-        self.assertEqual(len(result), 9)
-        # test with duplicates in to_resolve. use results from
-        # resolving_conflicts for one of the dependencies.
-        result = resolve_conflicts(
-            complex_fk_version,
-            resolve_conflicts(simple_fk_version, []))
-        self.assertEqual(len(result), 9)
-
     def test_recursive_resolver_resolve_conflicts(self):
         # test with no conflicts
         #  * no translations, placeholders, fks
-        simple_no_adm_version = get_latest_version_for_object(
+        simple_no_adm_version = get_version_for_object(
             self.simple_registered)
         result = RecursiveRevisionConflictResolver(
             simple_no_adm_version).resolve()
         self.assertEqual(len(result), 1)
 
         #  * with translations
-        with_trans_version = get_latest_version_for_object(
+        with_trans_version = get_version_for_object(
             self.with_translation)
         result = RecursiveRevisionConflictResolver(with_trans_version).resolve()
         # one version for the object itself, and 2 for translations
         self.assertEqual(len(result), 3)
 
         #  * with placeholders
-        with_ph_version = get_latest_version_for_object(self.with_placeholder)
+        with_ph_version = get_version_for_object(self.with_placeholder)
         result = RecursiveRevisionConflictResolver(with_ph_version).resolve()
         self.assertEqual(len(result), 1)
 
         #  * with fks
-        simple_fk_version = get_latest_version_for_object(self.simple_fk)
+        simple_fk_version = get_version_for_object(self.simple_fk)
         result = RecursiveRevisionConflictResolver(simple_fk_version).resolve()
         self.assertEqual(len(result), 1)
 
         #  * with all of that
-        complex_fk_version = get_latest_version_for_object(self.complex_one_fk)
+        complex_fk_version = get_version_for_object(self.complex_one_fk)
         result = RecursiveRevisionConflictResolver(complex_fk_version).resolve()
         # one version for the object itself, and 2 for translations
         self.assertEqual(len(result), 3)
@@ -420,7 +326,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         # test with version and prepared to resolve.
         # for second and third if clauses.
         self.assertEqual(MultiLevelFK.objects.count(), 0)
-        multi_level_fk_version = get_latest_version_for_object(
+        multi_level_fk_version = get_version_for_object(
             self.multi_level_fk)
         result = RecursiveRevisionConflictResolver(
             multi_level_fk_version, [simple_fk_version]).resolve()
