@@ -44,7 +44,9 @@ class RecoverObjectWithTranslationForm(forms.Form):
     def clean(self):
         data = super(RecoverObjectWithTranslationForm, self).clean()
         # if there is self.resolve_conflicts do not count them as conflicts
-        exclude = {'pk__in': [version.pk for version in self.resolve_conflicts]}
+        exclude = {
+            'pk__in': [version.pk for version in
+                       self.resolve_conflicts + self.placeholders]}
         conflict_fks_versions = get_conflict_fks_versions(
             self.obj, self.version, self.revision,
             exclude=exclude)

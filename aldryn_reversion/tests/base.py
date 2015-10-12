@@ -23,9 +23,20 @@ from aldryn_reversion.test_helpers.test_app.models import (
 )
 
 
-def get_latest_version_for_object(obj):
-        version = reversion.get_for_object(obj)[0]
-        return version
+def get_version_for_object(obj, revision_pk=None):
+    """
+    Return version for object, if revision_pk is provided - returns a version
+    from that specific revision. No exception handling! if you get exceptions
+    check your logic.
+    :param obj: revisionable object
+    :param revision_pk: int revision pk
+    :return: reversion.models.Version
+    """
+    versions = reversion.get_for_object(obj)
+    if revision_pk is not None:
+        versions = versions.filter(revision__pk=revision_pk)
+    version = versions[0]
+    return version
 
 
 class ReversionBaseTestCase(TransactionTestCase):
@@ -128,7 +139,7 @@ class ReversionBaseTestCase(TransactionTestCase):
         object not reversion.models.Version.
         """
         return (object_or_version if type(object_or_version) == Version
-                else get_latest_version_for_object(object_or_version))
+                else get_version_for_object(object_or_version))
 
 
 class HelperModelsObjectsSetupMixin(object):

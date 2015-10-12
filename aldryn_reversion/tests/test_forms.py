@@ -11,12 +11,12 @@ from aldryn_reversion.test_helpers.test_app.models import (
 
 from ..forms import RecoverObjectWithTranslationForm
 from ..utils import (
-    resolve_conflicts, get_deleted_placeholders_for_object,
+    RecursiveRevisionConflictResolver, get_deleted_placeholders_for_object,
 )
 
 from .base import (
     ReversionBaseTestCase, HelperModelsObjectsSetupMixin,
-    get_latest_version_for_object
+    get_version_for_object
 )
 
 
@@ -24,7 +24,7 @@ class FormsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
     form_class = RecoverObjectWithTranslationForm
 
     def build_form_kwargs(self, obj):
-        version = get_latest_version_for_object(obj)
+        version = get_version_for_object(obj)
         return {
             'revision': version.revision,
             'obj': obj,
@@ -127,10 +127,11 @@ class FormsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         self.assertEqual(form_simple_fk_with_conflicts.non_field_errors()[0],
                          'Cannot restore object, there are conflicts!')
 
-        # test with conflicts that were resolved by utility resolve_conflicts,
-        # and result were passed to form init, should validate fine
-        simple_fk_resolved_conflicts = resolve_conflicts(
-            simple_fk_kwargs['version'], [])
+        # test with conflicts that were resolved by utility
+        # RecursiveRevisionConflictResolver, and result were passed to form
+        # init, should validate fine
+        simple_fk_resolved_conflicts = RecursiveRevisionConflictResolver(
+            simple_fk_kwargs['version']).resolve()
         simple_fk_kwargs['resolve_conflicts'] = simple_fk_resolved_conflicts
         form_simple_fk_resolved = self.build_bound_form(simple_fk_kwargs)
         self.assertTrue(form_simple_fk_resolved.is_valid())
@@ -138,7 +139,8 @@ class FormsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         # test with conflicts that were resolved, and passed to form init,
         # but then something more was corrupted (new conflicts) should raise
         simple_no_admin_version.revert()
-        partially_resolved = resolve_conflicts(simple_fk_kwargs['version'], [])
+        partially_resolved = RecursiveRevisionConflictResolver(
+            simple_fk_kwargs['version']).resolve()
         simple_fk_kwargs['resolve_conflicts'] = partially_resolved
         form_simple_fk_resolved = self.build_bound_form(simple_fk_kwargs)
         # delete object which was not resolved by resolver
@@ -210,8 +212,8 @@ class FormsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         SimpleNoAdmin.objects.get().delete()
         self.assertEqual(SimpleNoAdmin.objects.count(), 0)
         self.assertEqual(SimpleFK.objects.count(), 0)
-        simple_fk_resolved_conflicts = resolve_conflicts(
-            simple_fk_kwargs['version'], [])
+        simple_fk_resolved_conflicts = RecursiveRevisionConflictResolver(
+            simple_fk_kwargs['version']).resolve()
         simple_fk_kwargs['resolve_conflicts'] = simple_fk_resolved_conflicts
         form_simple_fk_resolved = self.build_bound_form(simple_fk_kwargs)
         self.assertTrue(form_simple_fk_resolved.is_valid())

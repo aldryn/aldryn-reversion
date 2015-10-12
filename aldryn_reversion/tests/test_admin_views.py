@@ -12,12 +12,12 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 from cms import api
 
 from aldryn_reversion.test_helpers.test_app.models import (
-    SimpleRegistered, SimpleNoAdmin, SimpleFK, SimpleRequiredFK,
+    SimpleRegistered, SimpleNoAdmin, SimpleFK, SimpleRequiredFK, BlankFK,
 )
 
 from .base import (
     HelperModelsObjectsSetupMixin, CMSRequestBasedMixin, ReversionBaseTestCase,
-    get_latest_version_for_object,
+    get_version_for_object,
 )
 
 VERSION_INFO = "{content_type_name} #{object_id_int}: {object_repr}"
@@ -101,7 +101,7 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
         object not reversion.models.Version.
         """
         return (object_or_version if type(object_or_version) == Version
-                else get_latest_version_for_object(object_or_version))
+                else get_version_for_object(object_or_version))
 
     def get_recover_view_response(self, obj_or_version, version_id=None,
                                   language='en'):
@@ -168,7 +168,7 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
             self.get_admin_url_for_obj(self.simple_no_admin)
 
     def test_recover_view_works_with_simple_objects(self):
-        simple_version = get_latest_version_for_object(self.simple_registered)
+        simple_version = get_version_for_object(self.simple_registered)
         self.simple_registered.delete()
         self.assertEqual(SimpleRegistered.objects.count(), 0)
 
@@ -186,7 +186,7 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
     def test_recover_warnings_on_conflicts(self):
         # check that there is no warning on conflictable object
         # if there is no conflict
-        simple_fk_version = get_latest_version_for_object(self.simple_fk)
+        simple_fk_version = get_version_for_object(self.simple_fk)
         self.simple_fk.delete()
         self.assertEqual(SimpleFK.objects.count(), 0)
         response = self.get_recover_view_response(
@@ -202,12 +202,11 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
         self.assertEqual(SimpleFK.objects.count(), 1)
 
         # make conflict which is solvable by user
-
-        simple_registered_version = get_latest_version_for_object(
+        simple_registered_version = get_version_for_object(
             self.simple_registered)
         conflict_url = self.get_admin_url_for_obj(
             self.simple_registered, version=simple_registered_version)
-        simple_required_fk_version = get_latest_version_for_object(
+        simple_required_fk_version = get_version_for_object(
             self.simple_required_fk)
         self.simple_registered.delete()
         self.simple_required_fk.delete()
@@ -223,10 +222,55 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
         # check that there is no recover button
         self.assertNotContains(response, RECOVER_BUTTON)
 
+    # Test that if model has blank/null true conflicts are detected
+    def test_recover_warnings_on_conflicts_for_blank_fk(self):
+        # check that there is no warning on conflictable object
+        # if there is no conflict
+        blank_fk_version = get_version_for_object(self.blank_fk)
+        self.blank_fk.delete()
+        self.assertEqual(BlankFK.objects.count(), 0)
+        response = self.get_recover_view_response(
+            blank_fk_version, version_id=str(blank_fk_version.id))
+        for info in ALL_INFO_MESSAGES:
+            self.assertNotContains(response, info)
+        # check that in this case recover button is accessible
+        self.assertContains(response, RECOVER_BUTTON)
+
+        # check that recovered object is actually being restored
+        response = self.post_recover_view_response(blank_fk_version)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(BlankFK.objects.count(), 1)
+
+        # since we have only one object we can do that =)
+        self.blank_fk = BlankFK.objects.get()
+        # make conflict which is solvable by user
+        blank_fk_version = get_version_for_object(self.blank_fk)
+        # since there might (or actually is) another revisions, use the same
+        # revision as blank_fk_version, otherwise conflict url will mismatch
+        simple_registered_version = get_version_for_object(
+            self.blank_fk.simple_relation,
+            revision_pk=blank_fk_version.revision.pk)
+        conflict_url = self.get_admin_url_for_obj(
+            self.blank_fk.simple_relation, version=simple_registered_version)
+        # delete objects
+        self.blank_fk.delete()
+        self.assertEqual(BlankFK.objects.count(), 0)
+        self.simple_registered.delete()
+        self.assertEqual(SimpleRegistered.objects.count(), 0)
+
+        # check that there is a link to conflict
+        response = self.get_recover_view_response(blank_fk_version)
+        # check info messages.
+        self.check_info(response, CONFLICT_INFO,
+                        versions={'conflict': [simple_registered_version]})
+        self.assertContains(response, conflict_url)
+        # check that there is no recover button
+        self.assertNotContains(response, RECOVER_BUTTON)
+
     def test_recover_no_warnings_on_non_recoverable_by_user_conflict(self):
         # check that if there is no conflict - there is no warning
 
-        simple_fk_version = get_latest_version_for_object(self.simple_fk)
+        simple_fk_version = get_version_for_object(self.simple_fk)
         self.simple_fk.delete()
         self.assertEqual(SimpleFK.objects.count(), 0)
         response = self.get_recover_view_response(simple_fk_version)
@@ -237,7 +281,7 @@ class ReversionRecoverAdminTestCase(AdminUtilsMixin,
         self.assertContains(response, RECOVER_BUTTON)
 
         # make conflict
-        no_admin_verson = get_latest_version_for_object(self.simple_no_admin)
+        no_admin_verson = get_version_for_object(self.simple_no_admin)
         self.simple_no_admin.delete()
         # check that there is no conflict warning
         response = self.get_recover_view_response(simple_fk_version)
@@ -291,7 +335,7 @@ class ReversionRevisionAdminTestCase(AdminUtilsMixin,
                                             str(version.pk))
 
     def test_revision_view_is_accessible(self):
-        simple_registered_version = get_latest_version_for_object(
+        simple_registered_version = get_version_for_object(
             self.simple_registered)
         response = self.get_revision_view_response(
             self.simple_registered, simple_registered_version)
@@ -321,7 +365,7 @@ class AdminUtilsMethodsTestCase(AdminUtilsMixin,
 
     def test_create_aldryn_revision(self):
         # would be used to get admin instance
-        with_placeholder_version = get_latest_version_for_object(
+        with_placeholder_version = get_version_for_object(
             self.with_placeholder)
 
         admin_instance = self.get_admin_instance_for_object(

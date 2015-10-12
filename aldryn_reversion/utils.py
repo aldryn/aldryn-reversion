@@ -62,60 +62,80 @@ def get_translations_versions_for_object(obj, revision, versions=None):
 
 def get_fk_models(obj, blank=None):
     """
-    Returns required (blank=False) FK models for given object.
+    Returns a list of tuples (FK model, `blank`) for FK relations on a given
+    object model. If blank is provided - filters by `blank` attribute value.
+    :param obj: object to check FK relations
+    :param blank: bool to filter relations by `blank` FK attrubute
+    :return: list of tuples (FK model, fk.blank)
     """
-    fk_fields = [fk for fk in obj._meta.fields if type(fk) == ForeignKey]
-    fks_models = []
-    for fk in fk_fields:
+    fk_relations = []
+    for fk in obj._meta.fields:
+        # process only FK and subclasses
+        if not issubclass(type(fk), ForeignKey):
+            continue
         if fk.blank == blank or blank is None:
-            fks_models.append(fk.rel.to)
-    return fks_models
+            relation = {
+                'fk_field': fk,
+                'model': fk.rel.to,
+                'content_type': ContentType.objects.get_for_model(fk.rel.to),
+                'blank': fk.blank,
+            }
+            fk_relations.append(relation)
+    return fk_relations
 
 
-def get_deleted_objects_versions(versions, exclude=None):
+def get_deleted_objects_versions(versions):
     """
     Returns a list of version for deleted objects in given versions queryset.
     Performs excluding on versions queryset if exclude dictionary
     {field_name: value, ...} is provided.
     """
-    other_deleted = []
-    if exclude is not None:
-        versions = versions.exclude(**exclude)
-
+    deleted_versions = []
     for version in versions:
-        if version.object is None:
-            # if there is no relation to object - it is delted
-            other_deleted.append(version)
-            continue
-        # in case if GenericKey relation is broken, or object was takem
-        # from cache - try to perform DB lookup. This will/should always hit db.
-        # get object model class to access database for lookup
-        check_obj_model = version.object._meta.model
-        # if there is a match - object exists and we don't need to
-        # restore it
-        exists = check_obj_model.objects.filter(pk=version.object_id)
-        if len(exists) > 0:
-            continue
-        other_deleted.append(version)
-    return other_deleted
+        if object_was_deleted(version):
+            deleted_versions.append(version)
+    return deleted_versions
+
+
+def object_was_deleted(version):
+    if version.object is None:
+        # if there is no relation to object - it is delted
+        return True
+    # in case if GenericKey relation is broken, or object was takem
+    # from cache - try to perform DB lookup. This will/should always hit db.
+    # get object model class to access database for lookup
+    check_obj_model = version.object._meta.model
+    # if there is a match - object exists and we don't need to
+    # restore it
+    if check_obj_model.objects.filter(pk=version.object_id).count() == 0:
+        return True
+    return False
 
 
 def get_conflict_fks_versions(obj, version, revision, exclude=None):
     """
-    Lookup for deleted FKs (blank=False)for obj, expects version to be obj
+    Lookup for deleted FKs for obj, expects version to be obj
     version from the same revision.
     If exclude provided - excludes based on that from versions to check.
     Expects exclude to be a dict of filter string, value i.e {'pk': 1}.
     Returns versions for deleted fks.
     """
     # TODO: get all conflicts, return a tuple/dict with required and not.
-    required_models = get_fk_models(obj, blank=False)
-    required_cts = [ContentType.objects.get_for_model(
-        fk_model) for fk_model in required_models]
-    versions_to_check = revision.version_set.exclude(
-        pk=version.pk).filter(content_type__in=required_cts)
+    fk_relations = get_fk_models(obj)
+    versions_to_check = []
+    for relation in fk_relations:
+        found_versions = revision.version_set.exclude(
+            pk=version.pk).filter(content_type=relation['content_type'])
+        versions_to_check += list(found_versions.values_list('pk', flat=True))
+
+    # convert to versions queryset instead of a list
+    versions_to_check_qs = revision.version_set.filter(pk__in=versions_to_check)
+
+    if exclude is not None:
+        versions_to_check_qs = versions_to_check_qs.exclude(**exclude)
+
     conflict_fks_versions = get_deleted_objects_versions(
-        versions_to_check, exclude=exclude)
+        versions_to_check_qs)
     return conflict_fks_versions
 
 
@@ -172,60 +192,66 @@ def exclude_resolved(to_exclude, objects):
     return [item for item in objects if item not in to_exclude]
 
 
-def resolve_conflicts(version, to_resolve):
-    """
-    Resolve conflicts recursively. Assumes that version.object is deleted.
-    If conflict object is translatable and/or has placeholders which were
-    deleted - adds it's translations to resulting Version's list.
-    If version object has required FKs that were deleted - runs resolve
-    conflict against that object (recursion).
-    Does not checks if current version was already processed, so might have
-    issues with resolving cycle relations.
-    """
-    obj = version.object_version.object
-    revision = version.revision
+class RecursiveRevisionConflictResolver(object):
 
-    other_conflicts = get_conflict_fks_versions(obj, version, revision)
+    def __init__(self, version, to_resolve=None, exclude=None):
+        self.resolved = []
+        self.version = version
+        if to_resolve is None:
+            self.to_resolve = []
+        else:
+            self.to_resolve = to_resolve
+        if exclude is not None:
+            self.initial_exclude = exclude
+        else:
+            self.initial_exclude = []
 
-    resolved_versions = [version]
-    deleted_placeholders = get_deleted_placeholders_for_object(obj, revision)
-    if deleted_placeholders:
-        resolved_versions += deleted_placeholders
+    def _update_resolved(self, versions):
+        """
+        Update resolved versions.
+        :param versions:
+        :return:
+        """
+        for version in versions:
+            if version not in self.resolved:
+                self.resolved.append(version)
 
-    # check for translations
-    translatable = hasattr(obj, 'translations')
-    if translatable:
-        translation_versions = get_translations_versions_for_object(
-            obj, revision)
-        resolved_versions += list(translation_versions)
+    def _update_to_resolve(self, other_conflicts):
+        for item in other_conflicts:
+            if item not in self.resolved and item not in self.initial_exclude:
+                self.to_resolve.append(item)
 
-    # base case
-    if not to_resolve and not other_conflicts:
-        return resolved_versions
+    def resolve(self, version=None):
 
-    # if only found conflicts left
-    if other_conflicts and not to_resolve:
-        # if there is duplicates - exclude them
-        return resolved_versions + resolve_conflicts(
-            other_conflicts[0],
-            exclude_resolved(resolved_versions, other_conflicts[1:]))
+        if version is None:
+            version = self.version
 
-    # no conflicts, but other work left
-    if not other_conflicts and to_resolve:
-        # if there is duplicates - exclude them
-        return resolved_versions + resolve_conflicts(
-            to_resolve[0],
-            exclude_resolved(resolved_versions, to_resolve[1:]))
+        obj = version.object_version.object
+        revision = version.revision
 
-    # if we have a lot of work...
-    if other_conflicts and to_resolve:
-        # resolve our conflicts first
-        # filter for duplicate versions. ensures that item is either in
-        # other_conflicts or in to_resolve. Also if it was resolved in
-        # current step - exclude it.
-        new_to_resolve = [
-            item for item in other_conflicts[1:] + to_resolve if item in set(
-                other_conflicts[1:] + to_resolve) and
-            item not in resolved_versions]
-        return resolved_versions + resolve_conflicts(
-            other_conflicts[0], new_to_resolve)
+        self._update_resolved([version])
+
+        other_conflicts = get_conflict_fks_versions(obj, version, revision)
+
+        deleted_placeholders = get_deleted_placeholders_for_object(obj,
+                                                                   revision)
+        if deleted_placeholders:
+            self._update_resolved(deleted_placeholders)
+
+        # check for translations
+        translatable = hasattr(obj, 'translations')
+        if translatable:
+            translation_versions = get_translations_versions_for_object(
+                obj, revision)
+            self._update_resolved(translation_versions)
+
+        # recalculate to resolve.
+        self._update_to_resolve(other_conflicts)
+
+        # recursion, we have everything we need
+        if self.to_resolve:
+            self.resolve(self.to_resolve.pop(0))
+
+        # base case
+        if not self.to_resolve:
+            return self.resolved
