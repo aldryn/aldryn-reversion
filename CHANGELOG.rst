@@ -1,10 +1,11 @@
 CHANGELOG
 =========
 
-X.X.X (XXXX-XX-XX)
+1.0.1 (2015-11-11)
 ------------------
 
 * Fix compatibility with django-reversions >=1.9.0
+* Improve for conflict detection
 
 1.0.0 (2015-08-31)
 ------------------
