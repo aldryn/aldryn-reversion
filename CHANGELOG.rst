@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.0.2 (2015-11-23)
+------------------
+
+* Fix AssertionError when moving plugins.
+
 1.0.1 (2015-11-11)
 ------------------
 
