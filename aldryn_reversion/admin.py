@@ -74,6 +74,14 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         # applying the versioning to the wrong model.
         #
         objs = plugin.placeholder._get_attached_objects()
+
+        if not objs:
+            # It's possible that the plugin being modified
+            # does not belong to a placeholder coming from a PlaceholderField.
+            # When this is the case, the placeholder will not have
+            # any attached objects.
+            return
+
         assert len(objs) == 1, 'Placeholder attached to multiple objects'
         obj = objs[0]
         if user:
