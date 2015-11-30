@@ -63,7 +63,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         """
         return {'plugin_id': plugin.id, 'plugin': force_text(plugin)}
 
-    def _create_aldryn_revision(self, plugin, user=None, comment=None):
+    def _create_aldryn_revision(self, plugin, user=None, comment=None, source=None):
         #
         # _get_attached_objects returns the models which define the
         # PlaceholderField to which this placeholder is linked. Theoretically it
@@ -73,22 +73,46 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         # better to fail loudly than to compromise the integrity of the data by
         # applying the versioning to the wrong model.
         #
-        objs = plugin.placeholder._get_attached_objects()
 
-        if not objs:
-            # It's possible that the plugin being modified
-            # does not belong to a placeholder coming from a PlaceholderField.
-            # When this is the case, the placeholder will not have
-            # any attached objects.
+        obj_from_target = self._get_placeholder_attached_object(plugin.placeholder)
+
+        if source:
+            obj_from_source = self._get_placeholder_attached_object(source)
+        else:
+            obj_from_source = None
+
+        if not obj_from_target and not obj_from_source:
             return
 
-        assert len(objs) == 1, 'Placeholder attached to multiple objects'
-        obj = objs[0]
         if user:
             reversion.set_user(user)
         if comment:
             reversion.set_comment(comment)
-        create_revision_with_placeholders(obj)
+
+        if obj_from_target:
+            create_revision_with_placeholders(obj_from_target)
+
+        if obj_from_source and obj_from_source != obj_from_target:
+            create_revision_with_placeholders(obj_from_source)
+
+    def _get_placeholder_attached_object(self, placeholder):
+        objs = placeholder._get_attached_objects()
+
+        # _get_attached_objects returns the models which define the
+        # PlaceholderField to which this placeholder is linked. Theoretically it
+        # is possible to have a placeholder attached to multiple models (as two
+        # PlaceholderFields could point to the same instance), but the only way
+        # to do this is by coding it. As we don't support this use case yet,
+        # better to fail loudly than to compromise the integrity of the data by
+        # applying the versioning to the wrong model.
+
+        assert len(objs) <= 1, 'Placeholder attached to multiple objects'
+
+        try:
+            obj = objs[0]
+        except IndexError:
+            obj = None
+        return obj
 
     def post_add_plugin(self, request, placeholder, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_add_plugin(
@@ -110,7 +134,12 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
             request, source_placeholder, target_placeholder, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Moved plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_aldryn_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(
+            plugin,
+            request.user,
+            comment,
+            source=source_placeholder
+        )
 
     def post_delete_plugin(self, request, plugin):
         super(VersionedPlaceholderAdminMixin, self).post_delete_plugin(
