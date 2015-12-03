@@ -63,7 +63,9 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         """
         return {'plugin_id': plugin.id, 'plugin': force_text(plugin)}
 
-    def _create_aldryn_revision(self, plugin, user=None, comment=None, source=None):
+    def _create_aldryn_revision(self,
+                                plugin, user=None,
+                                comment=None, source=None):
         #
         # _get_attached_objects returns the models which define the
         # PlaceholderField to which this placeholder is linked. Theoretically it
@@ -74,10 +76,12 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         # applying the versioning to the wrong model.
         #
 
-        obj_from_target = self._get_placeholder_attached_object(plugin.placeholder)
+        get_attached_object = self._get_placeholder_attached_object
+
+        obj_from_target = get_attached_object(plugin.placeholder)
 
         if source:
-            obj_from_source = self._get_placeholder_attached_object(source)
+            obj_from_source = get_attached_object(source)
         else:
             obj_from_source = None
 
