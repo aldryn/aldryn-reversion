@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.0.3 (2015-12-03)
+------------------
+
+* Fixes inconsistency in revision history when moving plugins.
+
 1.0.2 (2015-11-23)
 ------------------
 
