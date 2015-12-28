@@ -5,7 +5,14 @@ from __future__ import unicode_literals
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.contrib import messages
-from django.contrib.admin.util import unquote
+try:
+    from django.contrib.admin.utils import unquote
+except ImportError:
+    # Django<=1.6
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        from django.contrib.admin.util import unquote
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.db import transaction
 from django.http import HttpResponseRedirect
