@@ -8,6 +8,7 @@ placeholder fields.
 """
 from functools import partial
 
+from django.db import transaction
 from django.db.models.signals import post_save
 
 from cms.models.pluginmodel import CMSPlugin
@@ -22,8 +23,40 @@ except:
     pass
 
 
-def create_revision_with_placeholders(instance, revision_manager=None,
+def create_revision(obj, user=None, comment=None):
+    with transaction.atomic():
+        with reversion.create_revision():
+            if user:
+                reversion.set_user(user)
+            if comment:
+                reversion.set_comment(comment)
+
+            revision_manager = reversion.default_revision_manager
+            revision_context = revision_manager._revision_context_manager
+
+            adapter = revision_manager.get_adapter(obj.__class__)
+
+            version_data = adapter.get_version_data(obj)
+            revision_context.add_to_context(revision_manager, obj, version_data)
+
+            if hasattr(obj._meta, 'placeholder_field_names'):
+                add_placeholders_to_revision(
+                    instance=obj,
+                    revision_manager=revision_manager,
+                    rev_ctx=revision_context,
+                )
+
+
+def add_placeholders_to_revision(instance, revision_manager=None,
                                       rev_ctx=None):
+    """
+    Manually add plugins to the revision.
+
+    This function is an updated version of
+    http://github.com/divio/django-cms/blob/develop/cms/utils/helpers.py#L34
+    but instead of working on pages, works on models with placeholder
+    fields.
+    """
     if revision_manager is None:
         revision_manager = reversion.default_revision_manager
 
@@ -36,9 +69,6 @@ def create_revision_with_placeholders(instance, revision_manager=None,
         rev_ctx.add_to_context(revision_manager, obj, version_data)
 
     if rev_ctx.is_active() and not rev_ctx.is_managing_manually():
-        # Add the instance to the revision
-        add_to_context(instance)
-
         # Add the placeholder to the revision
         for name in instance._meta.placeholder_field_names:
             add_to_context(getattr(instance, name))
@@ -49,6 +79,7 @@ def create_revision_with_placeholders(instance, revision_manager=None,
 
         for plugin in CMSPlugin.objects.filter(placeholder_id__in=ph_ids):
             plugin_instance, _ = plugin.get_plugin_instance()
+
             if plugin_instance:
                 add_to_context(plugin_instance)
             add_to_context(plugin)
@@ -91,36 +122,16 @@ class PlaceholderVersionAdapterMixin(object):
 
         # Add cms placeholders the to the models to follow.
         placeholders = getattr(model._meta, 'placeholder_field_names', None)
+
         if self.follow_placeholders and placeholders:
             self.follow = list(self.follow) + placeholders
             post_save.connect(self._add_plugins_to_revision, sender=model)
 
     def _add_plugins_to_revision(self, sender, instance, **kwargs):
-        """
-        Manually add plugins to the revision.
-
-        This method is an updated and adapter version of
-        http://github.com/divio/django-cms/blob/develop/cms/utils/helpers.py#L34
-        but instead of working on pages, works on models with placeholder
-        fields.
-        """
-        rev_ctx = self.revision_manager._revision_context_manager
-
-        def add_to_context(obj):
-            adapter = self.revision_manager.get_adapter(obj.__class__)
-            version_data = adapter.get_version_data(obj)
-            rev_ctx.add_to_context(self.revision_manager, obj, version_data)
-
-        if rev_ctx.is_active() and not rev_ctx.is_managing_manually():
-            ph_ids = [getattr(instance, '{0}_id'.format(name))
-                      for name in instance._meta.placeholder_field_names]
-
-            # Add all plugins to the revision
-            for plugin in CMSPlugin.objects.filter(placeholder_id__in=ph_ids):
-                plugin_instance, _ = plugin.get_plugin_instance()
-                if plugin_instance:
-                    add_to_context(plugin_instance)
-                add_to_context(plugin)
+        add_placeholders_to_revision(
+            instance=instance,
+            revision_manager=self.revision_manager,
+        )
 
 
 class ContentEnabledVersionAdapter(TranslatableVersionAdapterMixin,
