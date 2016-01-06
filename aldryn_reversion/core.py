@@ -47,8 +47,8 @@ def create_revision(obj, user=None, comment=None):
             add_placeholders_to_revision(instance=obj)
 
 
-def add_placeholders_to_revision(instance, revision_manager=None,
-                                      rev_ctx=None):
+def add_placeholders_to_revision(
+        instance, revision_manager=None, rev_ctx=None):
     """
     Manually add plugins to the revision.
 
