@@ -25,7 +25,7 @@ from cms.admin.placeholderadmin import PlaceholderAdminMixin
 import reversion
 from reversion.models import Version
 
-from .core import create_revision_with_placeholders
+from .core import create_revision
 from .forms import RecoverObjectWithTranslationForm
 from .utils import (
     get_conflict_fks_versions, build_obj_repr,
@@ -41,28 +41,24 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
 
     def add_plugin(self, request):
         with transaction.atomic():
-            with reversion.create_revision():
-                return super(VersionedPlaceholderAdminMixin, self).add_plugin(
-                    request)
+            return super(VersionedPlaceholderAdminMixin, self).add_plugin(
+                request)
 
     def edit_plugin(self, request, plugin_id):
         with transaction.atomic():
-            with reversion.create_revision():
-                return super(VersionedPlaceholderAdminMixin, self).edit_plugin(
-                    request, plugin_id)
+            return super(VersionedPlaceholderAdminMixin, self).edit_plugin(
+                request, plugin_id)
 
     def move_plugin(self, request):
         with transaction.atomic():
-            with reversion.create_revision():
-                return super(VersionedPlaceholderAdminMixin, self).move_plugin(
-                    request)
+            return super(VersionedPlaceholderAdminMixin, self).move_plugin(
+                request)
 
     def delete_plugin(self, request, plugin_id):
         with transaction.atomic():
-            with reversion.create_revision():
-                return super(
-                    VersionedPlaceholderAdminMixin, self).delete_plugin(
-                    request, plugin_id)
+            return super(
+                VersionedPlaceholderAdminMixin, self).delete_plugin(
+                request, plugin_id)
 
     def get_commen_plugin_info(self, plugin):
         """
@@ -95,16 +91,11 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
         if not obj_from_target and not obj_from_source:
             return
 
-        if user:
-            reversion.set_user(user)
-        if comment:
-            reversion.set_comment(comment)
-
         if obj_from_target:
-            create_revision_with_placeholders(obj_from_target)
+            create_revision(obj_from_target, user=user, comment=comment)
 
         if obj_from_source and obj_from_source != obj_from_target:
-            create_revision_with_placeholders(obj_from_source)
+            create_revision(obj_from_source, user=user, comment=comment)
 
     def _get_placeholder_attached_object(self, placeholder):
         objs = placeholder._get_attached_objects()
