@@ -22,7 +22,7 @@ from django.utils.encoding import force_text
 from django.utils.translation import ugettext as _
 
 from cms.admin.placeholderadmin import PlaceholderAdminMixin
-import reversion
+
 from reversion.models import Version
 from reversion.admin import VersionAdmin
 
@@ -154,7 +154,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
         """
         Override reversion.VersionAdmin log addition to provide useful message.
         """
-        super(reversion.VersionAdmin, self).log_addition(request, obj)
+        super(VersionAdmin, self).log_addition(request, obj)
         comment = _(
             "Initial version of %(object_repr)s.%(translation_info)s") % {
                 'object_repr': build_obj_repr(obj),

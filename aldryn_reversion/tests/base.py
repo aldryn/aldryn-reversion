@@ -3,8 +3,10 @@
 from __future__ import unicode_literals
 
 import six
-import reversion
+
 from reversion.models import Version
+from reversion.revisions import (
+    revision_context_manager, default_revision_manager)
 
 from django.db import transaction
 from django.conf import settings
@@ -32,7 +34,7 @@ def get_version_for_object(obj, revision_pk=None):
     :param revision_pk: int revision pk
     :return: reversion.models.Version
     """
-    versions = reversion.get_for_object(obj)
+    versions = default_revision_manager.get_for_object(obj)
     if revision_pk is not None:
         versions = versions.filter(revision__pk=revision_pk)
     version = versions[0]
@@ -82,7 +84,7 @@ class ReversionBaseTestCase(TransactionTestCase):
         kls.objects.create(**kwargs)
         """
         with transaction.atomic():
-            with reversion.create_revision():
+            with revision_context_manager.create_revision():
                 with override(language):
                     return kls.objects.create(**kwargs)
 
@@ -95,12 +97,12 @@ class ReversionBaseTestCase(TransactionTestCase):
         # objects, instead of containing only translation and no master object.
         obj.create_translation(language, **kwargs)
         with transaction.atomic():
-            with reversion.create_revision():
+            with revision_context_manager.create_revision():
                 obj.save()
 
     def create_revision(self, obj, content=None, **kwargs):
         with transaction.atomic():
-            with reversion.create_revision():
+            with revision_context_manager.create_revision():
                 # populate event with new values
                 for property, value in six.iteritems(kwargs):
                     setattr(obj, property, value)
@@ -121,7 +123,7 @@ class ReversionBaseTestCase(TransactionTestCase):
         """
         # get by position, since reversion_id is not reliable,
         version = list(reversed(
-            reversion.get_for_object(
+            default_revision_manager.get_for_object(
                 object_with_revision)))[revision_number - 1]
         version.revision.revert()
 
