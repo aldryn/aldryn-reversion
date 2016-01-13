@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+1.0.6 (2016-01-13)
+------------------
+
+* Further updates for django-reversion v1.10+
+* Expand test coverage to include CMS 3.2
+
 1.0.5 (2016-01-12)
 ------------------
 
