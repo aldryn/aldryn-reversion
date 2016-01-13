@@ -13,6 +13,7 @@
 # serve to show the default.
 
 import os
+import aldryn_reversion
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -52,7 +53,6 @@ author = u'Divio AG'
 # built documents.
 #
 # The short X.Y version.
-import aldryn_reversion
 version = aldryn_reversion.__version__
 # The full version, including alpha/beta/rc tags.
 release = aldryn_reversion.__version__
