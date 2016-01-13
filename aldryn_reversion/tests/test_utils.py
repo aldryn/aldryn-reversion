@@ -2,8 +2,8 @@
 
 from __future__ import unicode_literals
 
-import reversion
 from reversion.models import Version
+from reversion.revisions import default_revision_manager
 from cms.models import Placeholder
 
 from ..utils import (
@@ -84,8 +84,8 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         # check that object has 2 translation already
         self.assertEqual(self.with_translation.translations.count(), 2)
         # get_for_object returns latest version first.
-        version_2 = reversion.get_for_object(self.with_translation)[0]
-        version_1 = reversion.get_for_object(self.with_translation)[1]
+        version_2 = default_revision_manager.get_for_object(self.with_translation)[0]
+        version_1 = default_revision_manager.get_for_object(self.with_translation)[1]
         revision_2 = version_2.revision
         revision_1 = version_1.revision
         # compare count of translations from latest revision to actual count
@@ -99,7 +99,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
 
         # test with providing versions explicitly, should respect versions
         # over revision
-        exclude_en_pks = reversion.get_for_object(
+        exclude_en_pks = default_revision_manager.get_for_object(
             self.with_translation.translations.filter(
                 language_code='en').get()).values_list('pk', flat=True)
         versions = revision_2.version_set.all().exclude(
@@ -111,7 +111,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         self.assertEqual(len(result_versions), 1)
 
     def test_get_deleted_objects_versions(self):
-        blank_fk_version = reversion.get_for_object(self.blank_fk)[0]
+        blank_fk_version = default_revision_manager.get_for_object(self.blank_fk)[0]
         blank_fk_pk = self.blank_fk.pk
         # ensure that returns nothing for not deleted objects
         result = get_deleted_objects_versions(
@@ -129,7 +129,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         self.assertEqual(result[0].object_id_int, blank_fk_pk)
 
         # test with mixing 2 deleted object Versions
-        simple_fk_version = reversion.get_for_object(self.simple_fk)[0]
+        simple_fk_version = default_revision_manager.get_for_object(self.simple_fk)[0]
         simple_fk_pk = self.simple_fk.pk
         self.simple_fk.delete()
         self.assertEqual(SimpleFK.objects.filter(pk=simple_fk_pk).count(), 0)
@@ -145,7 +145,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
 
     def test_get_conflict_fks_versions_with_simple_models(self):
         # test with object that has no relations
-        simple_no_admin_version = reversion.get_for_object(
+        simple_no_admin_version = default_revision_manager.get_for_object(
             self.simple_registered)[0]
         result = get_conflict_fks_versions(
             self.simple_registered, simple_no_admin_version,
@@ -153,7 +153,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         self.assertEqual(len(result), 0)
 
         # test with object that has no conflicts
-        simple_fk_version = reversion.get_for_object(self.simple_fk)[0]
+        simple_fk_version = default_revision_manager.get_for_object(self.simple_fk)[0]
         result = get_conflict_fks_versions(
             self.simple_fk, simple_fk_version, simple_fk_version.revision)
         self.assertEqual(len(result), 0)
@@ -173,7 +173,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
 
     def test_get_conflict_fks_versions_with_blank_fk_model(self):
         # test with no conflict
-        bank_fk_version = reversion.get_for_object(self.blank_fk)[0]
+        bank_fk_version = default_revision_manager.get_for_object(self.blank_fk)[0]
         result = get_conflict_fks_versions(
             self.blank_fk, bank_fk_version, bank_fk_version.revision)
         self.assertEqual(len(result), 0)
@@ -189,13 +189,13 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         # test with new blank fk that has no relations, should not have
         # conflicts after delete.
         new_blank_fk = self.create_with_revision(BlankFK)
-        new_blank_fk_version = reversion.get_for_object(new_blank_fk)[0]
+        new_blank_fk_version = default_revision_manager.get_for_object(new_blank_fk)[0]
         result = get_conflict_fks_versions(
             new_blank_fk, new_blank_fk_version, new_blank_fk_version.revision)
         self.assertEqual(len(result), 0)
 
     def test_get_deleted_placeholders(self):
-        with_placeholder_version = reversion.get_for_object(
+        with_placeholder_version = default_revision_manager.get_for_object(
             self.with_placeholder)[0]
         # test returns nothing if there are no deleted placeholders
         result = get_deleted_placeholders(with_placeholder_version.revision)
@@ -213,7 +213,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
 
         # test with revision that has more then one deleted placeholder
         # (misc objects)
-        complex_one_fk_version = reversion.get_for_object(
+        complex_one_fk_version = default_revision_manager.get_for_object(
             self.complex_one_fk)[0]
         other_placeholder_pk = self.complex_one_fk.complex_content.pk
         self.complex_one_fk.complex_content.delete()
@@ -224,14 +224,14 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
 
     def test_get_deleted_placeholders_for_object(self):
         # test that it not fails with object that has no placeholders
-        simple_no_admin_version = reversion.get_for_object(
+        simple_no_admin_version = default_revision_manager.get_for_object(
             self.simple_no_admin)[0]
         result = get_deleted_placeholders_for_object(
             self.with_placeholder, simple_no_admin_version.revision)
         self.assertEqual(len(result), 0)
 
         # test if no placeholders were deleted
-        with_placeholder_version = reversion.get_for_object(
+        with_placeholder_version = default_revision_manager.get_for_object(
             self.with_placeholder)[0]
         result = get_deleted_placeholders_for_object(
             self.with_placeholder, with_placeholder_version.revision)
@@ -250,7 +250,7 @@ class UtilsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         self.assertEqual(len(result), 1)
 
         # test if placeholder was deleted for not related object (no result)
-        complex_one_fk_version = reversion.get_for_object(
+        complex_one_fk_version = default_revision_manager.get_for_object(
             self.complex_one_fk)[0]
         other_placeholder_pk = self.complex_one_fk.complex_content.pk
         self.complex_one_fk.complex_content.delete()

@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-import reversion
+from reversion.revisions import default_revision_manager
 from cms.models import Placeholder
 
 from aldryn_reversion.test_helpers.test_app.models import (
@@ -114,7 +114,7 @@ class FormsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         self.assertTrue(form_simple.is_valid())
 
         # test with not resolved conflicts - should rise validation error
-        simple_no_admin_version = reversion.get_for_object(
+        simple_no_admin_version = default_revision_manager.get_for_object(
             self.simple_no_admin)[0]
         self.simple_no_admin.delete()
         self.assertEqual(SimpleNoAdmin.objects.count(), 0)
@@ -160,7 +160,7 @@ class FormsTestCase(HelperModelsObjectsSetupMixin, ReversionBaseTestCase):
         self.assertEqual(SimpleNoAdmin.objects.count(), 1)
 
         # test reverts object and deleted placeholders
-        with_placeholder_version = reversion.get_for_object(
+        with_placeholder_version = default_revision_manager.get_for_object(
             self.with_placeholder)[0]
         placeholder_pk = self.with_placeholder.content.pk
         self.with_placeholder.content.delete()
