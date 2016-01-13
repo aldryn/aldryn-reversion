@@ -24,6 +24,7 @@ from django.utils.translation import ugettext as _
 from cms.admin.placeholderadmin import PlaceholderAdminMixin
 import reversion
 from reversion.models import Version
+from reversion.admin import VersionAdmin
 
 from .core import create_revision
 from .forms import RecoverObjectWithTranslationForm
@@ -34,8 +35,7 @@ from .utils import (
 )
 
 
-class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin,
-                                     reversion.VersionAdmin):
+class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
     revision_confirmation_template = 'aldryn_reversion/confirm_reversion.html'
     recover_confirmation_template = 'aldryn_reversion/confirm_recover.html'
 

@@ -11,8 +11,8 @@ from functools import partial
 from django.db.models.signals import post_save
 
 from cms.models.pluginmodel import CMSPlugin
-import reversion
-from reversion.revisions import VersionAdapter
+from reversion.revisions import (
+    default_revision_manager, revision_context_manager, VersionAdapter)
 
 # We would like this to not depend on Parler, but still support if it is
 # available.
@@ -24,10 +24,10 @@ except:
 
 def _add_to_context(obj, manager=None, context=None):
     if manager is None:
-        manager = reversion.default_revision_manager
+        manager = default_revision_manager
 
     if context is None:
-        context = manager._revision_context_manager
+        context = default_revision_manager._revision_context_manager
 
     adapter = manager.get_adapter(obj.__class__)
     version_data = adapter.get_version_data(obj)
@@ -35,11 +35,11 @@ def _add_to_context(obj, manager=None, context=None):
 
 
 def create_revision(obj, user=None, comment=None):
-    with reversion.create_revision():
+    with revision_context_manager.create_revision():
         if user:
-            reversion.set_user(user)
+            revision_context_manager.set_user(user)
         if comment:
-            reversion.set_comment(comment)
+            revision_context_manager.set_comment(comment)
 
         _add_to_context(obj)
 
@@ -138,7 +138,6 @@ class ContentEnabledVersionAdapter(TranslatableVersionAdapterMixin,
                                    VersionAdapter):
     pass
 
-
-version_controlled_content = partial(reversion.register,
+version_controlled_content = partial(default_revision_manager.register,
     adapter_cls=ContentEnabledVersionAdapter,
-    revision_manager=reversion.default_revision_manager)
+    revision_manager=default_revision_manager)
