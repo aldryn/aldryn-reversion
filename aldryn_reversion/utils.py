@@ -7,7 +7,18 @@ from django.db.models.fields.related import ForeignKey
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext as _
 
+from reversion.revisions import default_revision_manager
+
 import cms.models
+
+
+def object_is_reversion_ready(obj):
+    """
+    Returns True if the object's model
+    is registered with Django reversion.
+    """
+    cls = obj.__class__
+    return default_revision_manager.is_registered(cls)
 
 
 def object_is_translation(obj):
