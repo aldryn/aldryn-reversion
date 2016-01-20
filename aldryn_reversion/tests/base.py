@@ -224,7 +224,7 @@ class CMSRequestBasedMixin(object):
         setattr(request, '_messages', messages)
         return request
 
-    def get_su_request(self, **kwargs):
-        request = self.get_request(**kwargs)
+    def get_su_request(self, *args, **kwargs):
+        request = self.get_request(*args, **kwargs)
         request.user = self.super_user
         return request

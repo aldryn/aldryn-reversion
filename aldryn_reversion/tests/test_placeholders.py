@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from distutils.version import LooseVersion
+from unittest import skipUnless
 import json
 
 from django.contrib import admin
@@ -9,6 +11,7 @@ from django.utils.encoding import force_text
 
 from reversion.models import Version, Revision
 
+import cms
 from cms.api import create_page, add_plugin
 from cms.models import Placeholder, Page, StaticPlaceholder
 
@@ -21,6 +24,10 @@ from .base import (
     CMSRequestBasedMixin,
     ReversionBaseTestCase,
 )
+
+# CMS 3.2.1 introduced several fixes for reversions.
+# We count on these fixes in some tests.
+CMS_3_2_1 = LooseVersion(cms.__version__) >= LooseVersion('3.2.1')
 
 
 class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
@@ -100,6 +107,7 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             'were deleted.' % force_text(m_pl),
         )
 
+    @skipUnless(CMS_3_2_1, "CMS 3.2.1+ fixed reversion support.")
     def test_revision_on_plugin_move(self):
         from cms.plugin_pool import plugin_pool
 
@@ -279,6 +287,7 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             text_plugin_versions_initial_count + 3,
         )
 
+    @skipUnless(CMS_3_2_1, "CMS 3.2.1+ fixed reversion support.")
     def test_revision_on_plugin_move_a_copy(self):
         from cms.plugin_pool import plugin_pool
 
