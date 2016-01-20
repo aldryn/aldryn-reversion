@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from distutils.version import LooseVersion
-from django import get_version
+import os
 
-django_version = LooseVersion(get_version())
+PROJECT_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), 'aldryn_reversion', 'test_helpers')
+)
+
 
 HELPER_SETTINGS = {
     'INSTALLED_APPS': [
@@ -10,7 +12,7 @@ HELPER_SETTINGS = {
         'parler',
         'reversion',
         'aldryn_reversion',
-        'aldryn_reversion.test_helpers.test_app',
+        'aldryn_reversion.test_helpers.project.test_app',
     ],
     # affects test cases with translations
     'PARLER_ENABLE_CACHING': False,
@@ -44,35 +46,12 @@ HELPER_SETTINGS = {
             'redirect_on_fallback': True,
         }
     },
+    'CMS_TEMPLATES': (
+        ('simple.html', 'simple'),
+    ),
+    'TEMPLATE_DIRS': [
+        os.path.abspath(os.path.join(PROJECT_PATH, 'project', 'templates'))],
 }
-
-if django_version >= LooseVersion('1.8.0'):
-    HELPER_SETTINGS.update({
-        'TEMPLATES': [
-            {
-                'BACKEND': 'django.template.backends.django.DjangoTemplates',
-                'OPTIONS': {
-                    'context_processors': [
-                        'django.contrib.auth.context_processors.auth',
-                        'django.contrib.messages.context_processors.messages',
-                        'django.core.context_processors.i18n',
-                        'django.core.context_processors.debug',
-                        'django.core.context_processors.request',
-                        'django.core.context_processors.media',
-                        'django.core.context_processors.csrf',
-                        'django.core.context_processors.tz',
-                        'sekizai.context_processors.sekizai',
-                        'django.core.context_processors.static',
-                        'cms.context_processors.cms_settings',
-                    ],
-                    'loaders': [
-                        'django.template.loaders.filesystem.Loader',
-                        'django.template.loaders.app_directories.Loader',
-                    ],
-                },
-            },
-        ]
-    })
 
 
 def run():

@@ -19,7 +19,7 @@ from django.test import RequestFactory, TransactionTestCase
 
 from cms.utils.i18n import get_language_list
 
-from aldryn_reversion.test_helpers.test_app.models import (
+from aldryn_reversion.test_helpers.project.test_app.models import (
     SimpleNoAdmin, SimpleRegistered, WithTranslations, WithPlaceholder,
     SimpleFK, BlankFK, ComplexOneFK, MultiLevelFK, SimpleRequiredFK,
 )
@@ -203,13 +203,18 @@ class CMSRequestBasedMixin(object):
         cls.site1 = Site.objects.get(pk=1)
 
     @staticmethod
-    def get_request(language=None, url="/"):
+    def get_request(language=None, url="/", post_data=None):
         """
         Returns a Request instance populated with cms specific attributes.
         User is not set.
         """
         request_factory = RequestFactory(HTTP_HOST=settings.ALLOWED_HOSTS[0])
-        request = request_factory.get(url)
+
+        if post_data:
+            request = request_factory.post(url, post_data)
+        else:
+            request = request_factory.get(url)
+
         request.LANGUAGE_CODE = language or settings.LANGUAGE_CODE
         # Needed for plugin rendering.
         request.current_page = None
@@ -219,7 +224,7 @@ class CMSRequestBasedMixin(object):
         setattr(request, '_messages', messages)
         return request
 
-    def get_su_request(self, language=None, url="/"):
-        request = self.get_request(language, url)
+    def get_su_request(self, **kwargs):
+        request = self.get_request(**kwargs)
         request.user = self.super_user
         return request

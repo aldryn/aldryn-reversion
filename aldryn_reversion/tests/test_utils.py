@@ -19,7 +19,7 @@ from .base import (
     ReversionBaseTestCase, HelperModelsObjectsSetupMixin,
     get_version_for_object
 )
-from aldryn_reversion.test_helpers.test_app.models import (
+from aldryn_reversion.test_helpers.project.test_app.models import (
     SimpleNoAdmin, SimpleRegistered, WithPlaceholder,
     SimpleFK, BlankFK, ComplexOneFK, MultiLevelFK,
 )

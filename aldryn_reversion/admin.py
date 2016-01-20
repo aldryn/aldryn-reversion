@@ -138,17 +138,20 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
                           plugins):
         comment_dict = {'placeholder': target_placeholder}
         comment = _(u"Copied plugins to %(placeholder)s") % comment_dict
+        # We pass None because copy operations do not modify
+        # the source placeholder in any way, so no need
+        # to create a revision for the source.
         self._create_aldryn_revision(
             target_placeholder,
             request.user,
             comment,
-            source=source_placeholder,
+            source=None,
         )
 
     def post_move_plugin(self, request, source_placeholder, target_placeholder,
                          plugin):
-        comment_dict = self.get_commen_plugin_info(plugin)
-        comment = _('Moved plugin #%(plugin_id)s: %(plugin)s') % comment_dict
+        comment_dict = {'placeholder': target_placeholder}
+        comment = _('Moved plugins to %(placeholder)s') % comment_dict
         self._create_aldryn_revision(
             target_placeholder,
             request.user,
