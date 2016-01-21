@@ -119,8 +119,8 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
 
     def post_clear_placeholder(self, request, placeholder):
         comment_dict = {'placeholder': placeholder}
-        comment = _(u'All plugins in the placeholder '
-                    u'"%(placeholder)s" were deleted.') % comment_dict
+        comment = _('All plugins in the placeholder '
+                    '"%(placeholder)s" were deleted.') % comment_dict
 
         self._create_aldryn_revision(placeholder, request.user, comment)
 
@@ -137,7 +137,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
     def post_copy_plugins(self, request, source_placeholder, target_placeholder,
                           plugins):
         comment_dict = {'placeholder': target_placeholder}
-        comment = _(u"Copied plugins to %(placeholder)s") % comment_dict
+        comment = _("Copied plugins to %(placeholder)s") % comment_dict
         # We pass None because copy operations do not modify
         # the source placeholder in any way, so no need
         # to create a revision for the source.

@@ -202,7 +202,7 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             'Moved plugins to %s' % force_text(m_pl),
         )
 
-        # assert a new version for the link plugin has been created
+        # assert a new version for the text plugin has been created
         self.assertEqual(
             text_plugin_versions.count(),
             text_plugin_versions_initial_count + 1,
@@ -240,7 +240,7 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             'Moved plugins to %s' % force_text(n_pl),
         )
 
-        # assert a new version for the link plugin has been created
+        # assert a new version for the text plugin has been created
         self.assertEqual(
             text_plugin_versions.count(),
             text_plugin_versions_initial_count + 2,
@@ -286,7 +286,7 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             'Moved plugins to %s' % force_text(n_pl),
         )
 
-        # assert a new version for the link plugin has been created
+        # assert a new version for the text plugin has been created
         self.assertEqual(
             text_plugin_versions.count(),
             text_plugin_versions_initial_count + 3,
@@ -422,7 +422,7 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             'Copied plugins to %s' % force_text(n_pl),
         )
 
-        # assert a new version for the link plugin has been created
+        # assert a new version for the text plugin has been created
         self.assertEqual(
             text_plugin_versions.filter(object_id_int=text_plugin_pk).count(),
             1,
@@ -470,7 +470,7 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             'Copied plugins to %s' % force_text(n_pl),
         )
 
-        # assert a new version for the link plugin has been created
+        # assert a new version for the text plugin has been created
         self.assertEqual(
             text_plugin_versions.filter(object_id_int=text_plugin_pk).count(),
             1,
