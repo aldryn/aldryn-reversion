@@ -9,9 +9,8 @@ from django.utils.translation import ugettext as _
 
 from reversion.revisions import default_revision_manager
 
-import cms.models
 from cms.models import CMSPlugin, Placeholder
-
+from cms.models.fields import PlaceholderField
 
 def object_is_reversion_ready(obj):
     """
@@ -155,20 +154,20 @@ def object_has_placeholders(obj):
     """
     Returns True if given object has placeholder fields, False otherwise.
     """
-    return cms.models.PlaceholderField in [type(field)
-                                           for field in obj._meta.fields]
+    return PlaceholderField in [type(field)
+                                for field in obj._meta.fields]
 
 
 def get_placeholder_fields_names(obj):
     return [field.name for field in obj._meta.fields
-            if type(field) == cms.models.PlaceholderField]
+            if type(field) == PlaceholderField]
 
 
 def get_deleted_placeholders(revision):
     """
     Lookup for deleted placeholders for given revision
     """
-    placeholder_ct = ContentType.objects.get_for_model(cms.models.Placeholder)
+    placeholder_ct = ContentType.objects.get_for_model(Placeholder)
     placeholder_versions = revision.version_set.filter(
         content_type=placeholder_ct)
     deleted_placeholders = get_deleted_objects_versions(placeholder_versions)
