@@ -33,6 +33,8 @@ from .utils import (
     get_deleted_placeholders_for_object, object_is_translation,
     get_translation_info_message, RecursiveRevisionConflictResolver,
     object_is_reversion_ready,
+    object_has_placeholders,
+    sync_placeholder_version_plugins,
 )
 
 
@@ -228,6 +230,9 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
 
         if request.method == "POST":
             revision.revert()
+
+            if object_has_placeholders(obj):
+                sync_placeholder_version_plugins(obj, version)
             opts = self.model._meta
             pk_value = obj._get_pk_val()
             preserved_filters = self.get_preserved_filters(request)
