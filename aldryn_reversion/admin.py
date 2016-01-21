@@ -32,6 +32,7 @@ from .utils import (
     get_conflict_fks_versions, build_obj_repr,
     get_deleted_placeholders_for_object, object_is_translation,
     get_translation_info_message, RecursiveRevisionConflictResolver,
+    object_is_reversion_ready,
 )
 
 
@@ -66,8 +67,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
         """
         return {'plugin_id': plugin.id, 'plugin': force_text(plugin)}
 
-    def _create_aldryn_revision(self,
-                                plugin, user=None,
+    def _create_aldryn_revision(self, target, user=None,
                                 comment=None, source=None):
         #
         # _get_attached_objects returns the models which define the
@@ -81,7 +81,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
 
         get_attached_object = self._get_placeholder_attached_object
 
-        obj_from_target = get_attached_object(plugin.placeholder)
+        obj_from_target = get_attached_object(target)
 
         if source:
             obj_from_source = get_attached_object(source)
@@ -91,10 +91,11 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
         if not obj_from_target and not obj_from_source:
             return
 
-        if obj_from_target:
+        if obj_from_target and object_is_reversion_ready(obj_from_target):
             create_revision(obj_from_target, user=user, comment=comment)
 
-        if obj_from_source and obj_from_source != obj_from_target:
+        if (obj_from_source and obj_from_source != obj_from_target
+                and object_is_reversion_ready(obj_from_source)):
             create_revision(obj_from_source, user=user, comment=comment)
 
     def _get_placeholder_attached_object(self, placeholder):
@@ -116,39 +117,52 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
             obj = None
         return obj
 
+    def post_clear_placeholder(self, request, placeholder):
+        comment_dict = {'placeholder': placeholder}
+        comment = _('All plugins in the placeholder '
+                    '"%(placeholder)s" were deleted.') % comment_dict
+
+        self._create_aldryn_revision(placeholder, request.user, comment)
+
     def post_add_plugin(self, request, placeholder, plugin):
-        super(VersionedPlaceholderAdminMixin, self).post_add_plugin(
-            request, placeholder, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Added plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_aldryn_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(placeholder, request.user, comment)
 
     def post_edit_plugin(self, request, plugin):
-        super(VersionedPlaceholderAdminMixin, self).post_edit_plugin(
-            request, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Edited plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_aldryn_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin.placeholder, request.user, comment)
+
+    def post_copy_plugins(self, request, source_placeholder, target_placeholder,
+                          plugins):
+        comment_dict = {'placeholder': target_placeholder}
+        comment = _("Copied plugins to %(placeholder)s") % comment_dict
+        # We pass None because copy operations do not modify
+        # the source placeholder in any way, so no need
+        # to create a revision for the source.
+        self._create_aldryn_revision(
+            target_placeholder,
+            request.user,
+            comment,
+            source=None,
+        )
 
     def post_move_plugin(self, request, source_placeholder, target_placeholder,
                          plugin):
-        super(VersionedPlaceholderAdminMixin, self).post_move_plugin(
-            request, source_placeholder, target_placeholder, plugin)
-        comment_dict = self.get_commen_plugin_info(plugin)
-        comment = _('Moved plugin #%(plugin_id)s: %(plugin)s') % comment_dict
+        comment_dict = {'placeholder': target_placeholder}
+        comment = _('Moved plugins to %(placeholder)s') % comment_dict
         self._create_aldryn_revision(
-            plugin,
+            target_placeholder,
             request.user,
             comment,
             source=source_placeholder
         )
 
     def post_delete_plugin(self, request, plugin):
-        super(VersionedPlaceholderAdminMixin, self).post_delete_plugin(
-            request, plugin)
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Deleted plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_aldryn_revision(plugin, request.user, comment)
+        self._create_aldryn_revision(plugin.placeholder, request.user, comment)
 
     def log_addition(self, request, obj):
         """

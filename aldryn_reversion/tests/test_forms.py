@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from reversion.revisions import default_revision_manager
 from cms.models import Placeholder
 
-from aldryn_reversion.test_helpers.test_app.models import (
+from aldryn_reversion.test_helpers.project.test_app.models import (
     SimpleNoAdmin, SimpleFK, WithPlaceholder, WithTranslations,
 )
 

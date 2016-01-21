@@ -12,7 +12,7 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 
 from cms import api
 
-from aldryn_reversion.test_helpers.test_app.models import (
+from aldryn_reversion.test_helpers.project.test_app.models import (
     SimpleRegistered, SimpleNoAdmin, SimpleFK, SimpleRequiredFK, BlankFK,
 )
 
@@ -380,7 +380,7 @@ class AdminUtilsMethodsTestCase(AdminUtilsMixin,
         with transaction.atomic():
             with revision_context_manager.create_revision():
                 admin_instance._create_aldryn_revision(
-                    plugin,
+                    plugin.placeholder,
                     comment='New aldryn revision with initial plugin')
         # ensure there is at least one version after create aldryn revision
         self. assertEqual(default_revision_manager.get_for_object(plugin).count(), 1)
@@ -390,7 +390,7 @@ class AdminUtilsMethodsTestCase(AdminUtilsMixin,
         with transaction.atomic():
             with revision_context_manager.create_revision():
                 admin_instance._create_aldryn_revision(
-                    plugin,
+                    plugin.placeholder,
                     comment='New aldryn revision with initial plugin')
 
         # ensure there is at least one version after create aldryn revision
