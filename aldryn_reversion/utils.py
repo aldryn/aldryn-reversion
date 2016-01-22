@@ -12,6 +12,7 @@ from reversion.revisions import default_revision_manager
 from cms.models import CMSPlugin, Placeholder
 from cms.models.fields import PlaceholderField
 
+
 def object_is_reversion_ready(obj):
     """
     Returns True if the object's model
@@ -218,8 +219,8 @@ def sync_placeholder_version_plugins(obj, version):
     related_versions = version.revision.version_set.iterator()
 
     # List of all plugin ids in this revision
-    plugin_ids = [version.object_id for version in related_versions
-                  if version.content_type_id == plugin_c_type_id]
+    plugin_ids = [v.object_id for v in related_versions
+                  if v.content_type_id == plugin_c_type_id]
 
     # Remove plugins that are not part of the revision.
     old_plugins = (

@@ -210,10 +210,10 @@ class CMSRequestBasedMixin(object):
         """
         request_factory = RequestFactory(HTTP_HOST=settings.ALLOWED_HOSTS[0])
 
-        if post_data:
-            request = request_factory.post(url, post_data)
-        else:
+        if post_data is None:
             request = request_factory.get(url)
+        else:
+            request = request_factory.post(url, post_data)
 
         request.LANGUAGE_CODE = language or settings.LANGUAGE_CODE
         # Needed for plugin rendering.
