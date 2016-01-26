@@ -61,6 +61,21 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
         placeholder_c_type = self.get_placeholder_c_type()
         return Version.objects.filter(content_type=placeholder_c_type)
 
+    def get_plugin_id_from_response(self, response, path):
+        # Expects response to be a JSON response
+        # with a structure like so:
+        # {'path.1': {
+        #   'path.2': '/en/admin/app/example1/edit-plugin/3/'}
+        # }
+        # path is used to access nested keys
+
+        data = json.loads(response.content.decode('utf-8'))
+        keys = path.split('.')
+
+        for key in keys:
+            data = data[key]
+        return data.split('/')[-2]
+
     def move_a_copy(self, admin, placeholder_id, plugin_id):
         request = self.get_post_request({
             'placeholder_id': placeholder_id,
@@ -296,16 +311,6 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
     def test_revision_on_plugin_move_a_copy(self):
         from cms.plugin_pool import plugin_pool
 
-        def get_plugin_id_from_response(response):
-            # Expects response to be a JSON response
-            # with a structure like so:
-            # {'urls': {
-            #   'edit_plugin': '/en/admin/app/example1/edit-plugin/3/'}
-            # }
-
-            data = json.loads(response.content.decode('utf-8'))
-            return data['urls']['edit_plugin'].split('/')[-2]
-
         pl_versions = self.get_placeholder_versions()
 
         TextPluginModel = plugin_pool.get_plugin('TextPlugin').model
@@ -362,7 +367,10 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
         self.assertEqual(response.status_code, 200)
 
         # Point to the newly created text plugin
-        text_plugin_pk = get_plugin_id_from_response(response)
+        text_plugin_pk = self.get_plugin_id_from_response(
+            response,
+            path='urls.edit_plugin',
+        )
 
         # assert native placeholder version count remains the same
         self.assertEqual(
@@ -400,7 +408,10 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
         self.assertEqual(response.status_code, 200)
 
         # Point to the newly created text plugin
-        text_plugin_pk = get_plugin_id_from_response(response)
+        text_plugin_pk = self.get_plugin_id_from_response(
+            response,
+            path='urls.edit_plugin',
+        )
 
         # assert manual placeholder version count remains the same
         self.assertEqual(
@@ -438,7 +449,10 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
         self.assertEqual(response.status_code, 200)
 
         # Point to the newly created text plugin
-        text_plugin_pk = get_plugin_id_from_response(response)
+        text_plugin_pk = self.get_plugin_id_from_response(
+            response,
+            path='urls.edit_plugin',
+        )
 
         # assert native placeholder version count remains the same
         self.assertEqual(
@@ -456,7 +470,10 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
         self.assertEqual(response.status_code, 200)
 
         # Point to the newly created text plugin
-        text_plugin_pk = get_plugin_id_from_response(response)
+        text_plugin_pk = self.get_plugin_id_from_response(
+            response,
+            path='urls.edit_plugin',
+        )
 
         # assert a new version for the native placeholder has been created
         self.assertEqual(
@@ -475,3 +492,153 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             text_plugin_versions.filter(object_id_int=text_plugin_pk).count(),
             1,
         )
+
+    def test_revision_view_reverts_object_to_selected_state(self):
+        from cms.plugin_pool import plugin_pool
+
+        SamplePluginModel = plugin_pool.get_plugin('SamplePlugin').model
+        s_plugin_c_type = ContentType.objects.get_for_model(SamplePluginModel)
+
+        example_obj = WithPlaceholder.objects.create()
+
+        m_pl = example_obj.content
+        m_pl_admin = self.get_example_admin()
+
+        example_obj_versions = (
+            m_pl_admin
+            .revision_manager
+            .get_for_object(example_obj)
+            .order_by("-pk")
+        )
+
+        data = {
+            'plugin_type': 'SamplePlugin',
+            'placeholder_id': m_pl.pk,
+            'plugin_language': 'en',
+        }
+
+        request = self.get_post_request(data)
+
+        # first plugin
+        response = m_pl_admin.add_plugin(request)
+
+        self.assertEqual(response.status_code, 200)
+
+        # First version for example obj
+        example_obj_v1 = example_obj_versions[0]
+
+        # Point to the newly created sample plugin
+        sample_plugin_pk = self.get_plugin_id_from_response(
+            response,
+            path='url',
+        )
+
+        sample_plugin_versions = (
+            example_obj_v1.revision.version_set.all()
+            .filter(
+                content_type=s_plugin_c_type,
+                object_id_int=sample_plugin_pk
+            ).count()
+        )
+
+        # assert a new version for the sample plugin has been created
+        self.assertEqual(
+            sample_plugin_versions,
+            1,
+        )
+
+        # second plugin
+        response = m_pl_admin.add_plugin(request)
+
+        self.assertEqual(response.status_code, 200)
+
+        # Second version for example obj
+        example_obj_v2 = example_obj_versions[0]
+
+        # Point to the newly created sample plugin
+        sample_plugin_pk = self.get_plugin_id_from_response(
+            response,
+            path='url',
+        )
+
+        sample_plugin_versions = (
+            example_obj_v2.revision.version_set.all()
+            .filter(
+                content_type=s_plugin_c_type,
+                object_id_int=sample_plugin_pk
+            ).count()
+        )
+
+        # assert a new version for the text plugin has been created
+        self.assertEqual(
+            sample_plugin_versions,
+            1,
+        )
+
+        # third plugin
+        response = m_pl_admin.add_plugin(request)
+
+        self.assertEqual(response.status_code, 200)
+
+        # third version for example obj
+        example_obj_v3 = example_obj_versions[0]
+
+        # Point to the newly created sample plugin
+        sample_plugin_pk = self.get_plugin_id_from_response(
+            response,
+            path='url',
+        )
+
+        sample_plugin_versions = (
+            example_obj_v3.revision.version_set.all()
+            .filter(
+                content_type=s_plugin_c_type,
+                object_id_int=sample_plugin_pk
+            ).count()
+        )
+
+        # assert a new version for the text plugin has been created
+        self.assertEqual(
+            sample_plugin_versions,
+            1,
+        )
+
+        self.assertEqual(m_pl.cmsplugin_set.count(), 3)
+
+        request = self.get_post_request(data={})
+
+        # revert to the example object's version 1
+        m_pl_admin.revision_view(
+            request,
+            str(example_obj.pk),
+            str(example_obj_v1.pk),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # assert that only one plugin is present
+        self.assertEqual(m_pl.cmsplugin_set.count(), 1)
+
+        # revert to the example object's version 3
+        m_pl_admin.revision_view(
+            request,
+            str(example_obj.pk),
+            str(example_obj_v3.pk),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # assert that all three plugin is present
+        self.assertEqual(m_pl.cmsplugin_set.count(), 3)
+
+        # revert to the example object's version 2
+        m_pl_admin.revision_view(
+            request,
+            str(example_obj.pk),
+            str(example_obj_v2.pk),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # assert that only two plugin is present
+        self.assertEqual(m_pl.cmsplugin_set.count(), 2)

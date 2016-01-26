@@ -9,7 +9,8 @@ from django.utils.translation import ugettext as _
 
 from reversion.revisions import default_revision_manager
 
-import cms.models
+from cms.models import CMSPlugin, Placeholder
+from cms.models.fields import PlaceholderField
 
 
 def object_is_reversion_ready(obj):
@@ -154,24 +155,30 @@ def object_has_placeholders(obj):
     """
     Returns True if given object has placeholder fields, False otherwise.
     """
-    return cms.models.PlaceholderField in [type(field)
-                                           for field in obj._meta.fields]
+    return PlaceholderField in [type(field)
+                                for field in obj._meta.fields]
 
 
 def get_placeholder_fields_names(obj):
     return [field.name for field in obj._meta.fields
-            if type(field) == cms.models.PlaceholderField]
+            if type(field) == PlaceholderField]
 
 
 def get_deleted_placeholders(revision):
     """
     Lookup for deleted placeholders for given revision
     """
-    placeholder_ct = ContentType.objects.get_for_model(cms.models.Placeholder)
+    placeholder_ct = ContentType.objects.get_for_model(Placeholder)
     placeholder_versions = revision.version_set.filter(
         content_type=placeholder_ct)
     deleted_placeholders = get_deleted_objects_versions(placeholder_versions)
     return deleted_placeholders
+
+
+def get_placeholders_from_obj(obj):
+    placeholders_pks = [getattr(obj, '{0}_id'.format(field_name))
+                        for field_name in get_placeholder_fields_names(obj)]
+    return Placeholder.objects.filter(pk__in=placeholders_pks)
 
 
 def get_deleted_placeholders_for_object(obj, revision):
@@ -201,6 +208,28 @@ def exclude_resolved(to_exclude, objects):
     of revision.models.Versions.
     """
     return [item for item in objects if item not in to_exclude]
+
+
+def sync_placeholder_version_plugins(obj, version):
+    plugin_c_type_id = ContentType.objects.get_for_model(CMSPlugin).pk
+    placeholders = get_placeholders_from_obj(obj).values_list('pk', flat=True)
+
+    # Get all versions that belong to the same revision as
+    # the given version object.
+    related_versions = version.revision.version_set.iterator()
+
+    # List of all plugin ids in this revision
+    plugin_ids = [v.object_id for v in related_versions
+                  if v.content_type_id == plugin_c_type_id]
+
+    # Remove plugins that are not part of the revision.
+    old_plugins = (
+        CMSPlugin
+        .objects
+        .filter(placeholder__in=placeholders)
+        .exclude(pk__in=plugin_ids)
+    )
+    old_plugins.delete()
 
 
 class RecursiveRevisionConflictResolver(object):
