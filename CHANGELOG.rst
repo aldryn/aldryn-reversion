@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+1.0.7 (2016-02-04)
+------------------
+
+* Django 1.9 support.
+* Fixes issue where placeholder contains old plugins after reversion.
+* Fixes 500 error when moving plugin to static placeholder.
+
+
 1.0.6 (2016-01-13)
 ------------------
 
