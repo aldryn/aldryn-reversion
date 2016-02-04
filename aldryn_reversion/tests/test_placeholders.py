@@ -5,11 +5,6 @@ from distutils.version import LooseVersion
 import sys
 import json
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
 from django.utils.encoding import force_text
@@ -29,6 +24,11 @@ from .base import (
     CMSRequestBasedMixin,
     ReversionBaseTestCase,
 )
+
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 # CMS 3.2.1 introduced several fixes for reversions.
 # We count on these fixes in some tests.

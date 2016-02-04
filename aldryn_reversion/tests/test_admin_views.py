@@ -350,7 +350,8 @@ class ReversionRevisionAdminTestCase(AdminUtilsMixin,
         new_position = 99
         self.create_revision(self.simple_registered, position=new_position)
         self.assertNotEqual(initial_position, self.simple_registered.position)
-        prev_version = default_revision_manager.get_for_object(self.simple_registered)[1]
+        prev_version = default_revision_manager.get_for_object(
+            self.simple_registered)[1]
         response = self.post_revision_veiw_response(
             self.simple_registered, prev_version)
         self.assertEqual(response.status_code, 302)
@@ -376,14 +377,16 @@ class AdminUtilsMethodsTestCase(AdminUtilsMixin,
         plugin.body = 'Initial text'
         plugin.save()
         # ensure there was no versions for plugin before
-        self. assertEqual(default_revision_manager.get_for_object(plugin).count(), 0)
+        self.assertEqual(
+            default_revision_manager.get_for_object(plugin).count(), 0)
         with transaction.atomic():
             with revision_context_manager.create_revision():
                 admin_instance._create_aldryn_revision(
                     plugin.placeholder,
                     comment='New aldryn revision with initial plugin')
         # ensure there is at least one version after create aldryn revision
-        self. assertEqual(default_revision_manager.get_for_object(plugin).count(), 1)
+        self. assertEqual(
+            default_revision_manager.get_for_object(plugin).count(), 1)
         new_plugin_text = 'test plugin content was changed'
         plugin.body = new_plugin_text
         plugin.save()
@@ -394,13 +397,15 @@ class AdminUtilsMethodsTestCase(AdminUtilsMixin,
                     comment='New aldryn revision with initial plugin')
 
         # ensure there is at least one version after create aldryn revision
-        self. assertEqual(default_revision_manager.get_for_object(plugin).count(), 2)
+        self. assertEqual(
+            default_revision_manager.get_for_object(plugin).count(), 2)
         latest_plugin = plugin._meta.model.objects.get(pk=plugin.pk)
 
         # ensure text is latest
         self.assertEqual(latest_plugin.body, new_plugin_text)
         # ensure text is initial if reverted to previous revision
-        prev_version = default_revision_manager.get_for_object(self.with_placeholder)[1]
+        prev_version = default_revision_manager.get_for_object(
+            self.with_placeholder)[1]
         prev_version.revision.revert()
         # refresh from db
         latest_plugin = plugin._meta.model.objects.get(pk=plugin.pk)
