@@ -96,8 +96,8 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
         if obj_from_target and object_is_reversion_ready(obj_from_target):
             create_revision(obj_from_target, user=user, comment=comment)
 
-        if (obj_from_source and obj_from_source != obj_from_target
-                and object_is_reversion_ready(obj_from_source)):
+        if (obj_from_source and obj_from_source != obj_from_target and
+                object_is_reversion_ready(obj_from_source)):
             create_revision(obj_from_source, user=user, comment=comment)
 
     def _get_placeholder_attached_object(self, placeholder):
