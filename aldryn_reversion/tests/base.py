@@ -75,7 +75,7 @@ class ReversionBaseTestCase(TransactionTestCase):
 
     def create_super_user(self, user_name, user_password):
         super_user = self.create_user(user_name, user_password,
-                                      is_superuser=True)
+                                      is_superuser=True, is_staff=True)
         return super_user
 
     def create_with_revision(self, kls, language='en', **kwargs):
