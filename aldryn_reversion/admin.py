@@ -22,7 +22,7 @@ from django.utils.encoding import force_text
 from django.utils.translation import ugettext as _
 
 from cms.admin.placeholderadmin import PlaceholderAdminMixin
-
+from reversion import VERSION as REVERSION_VERSION
 from reversion.models import Version
 from reversion.admin import VersionAdmin
 
@@ -36,6 +36,8 @@ from .utils import (
     object_has_placeholders,
     sync_placeholder_version_plugins,
 )
+
+REVERSION_1_9_OR_HIGHER = REVERSION_VERSION >= (1, 9)
 
 
 class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
@@ -166,15 +168,30 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
         comment = _('Deleted plugin #%(plugin_id)s: %(plugin)s') % comment_dict
         self._create_aldryn_revision(plugin.placeholder, request.user, comment)
 
-    def log_addition(self, request, obj):
+    def log_addition(self, request, obj, change_message=None):
         """
         Override reversion.VersionAdmin log addition to provide useful message.
         """
-        super(VersionAdmin, self).log_addition(request, obj)
         comment = _(
             "Initial version of %(object_repr)s.%(translation_info)s") % {
                 'object_repr': build_obj_repr(obj),
                 'translation_info': get_translation_info_message(obj)}
+        # starting from django-reversion 1.9 revision is created in add view
+        # so there is no need to do that manually, but we want to have
+        # our meaningful comment instead of the standard one.
+        if REVERSION_1_9_OR_HIGHER:
+            class_super = VersionedPlaceholderAdminMixin
+        else:
+            class_super = VersionAdmin
+        try:
+            super(class_super, self).log_addition(request, obj, comment)
+        except TypeError:  # Django < 1.9 pragma: no cover
+            super(class_super, self).log_addition(request, obj)
+
+        # For older reversions we still need to do revision manually.
+        if REVERSION_1_9_OR_HIGHER:
+            return
+
         # previous implementation was to use self.get_revision_data
         # but that was also removed in 1.9.0 since it was a duplicate of logic
         # that is already present in save_revision or its related calls.
