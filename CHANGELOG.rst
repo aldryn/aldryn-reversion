@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+1.0.8 (2016-02-08)
+------------------
+
+* Fixes for different Django/django-reversion versions combinations.
+
+
 1.0.7 (2016-02-04)
 ------------------
 
@@ -15,10 +21,12 @@ CHANGELOG
 * Further updates for django-reversion v1.10+
 * Expand test coverage to include CMS 3.2
 
+
 1.0.5 (2016-01-12)
 ------------------
 
 * Updates for django-reversion v1.10+
+
 
 1.0.4 (2016-01-08)
 ------------------
@@ -26,15 +34,18 @@ CHANGELOG
 * Fixes warnings
 * Cleans up code a bit
 
+
 1.0.3 (2015-12-03)
 ------------------
 
 * Fixes inconsistency in revision history when moving plugins.
 
+
 1.0.2 (2015-11-23)
 ------------------
 
 * Fix AssertionError when moving plugins.
+
 
 1.0.1 (2015-11-11)
 ------------------
@@ -42,12 +53,14 @@ CHANGELOG
 * Fix compatibility with django-reversions >=1.9.0
 * Improve for conflict detection
 
+
 1.0.0 (2015-08-31)
 ------------------
 
 * Django 1.8 support
 * Test coverage increased from 0% to 90%
 * Add documentation
+
 
 0.1.0 (2015-07-22)
 ------------------

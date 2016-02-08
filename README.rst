@@ -32,8 +32,8 @@ Please refer to  `documentation
 Requirements
 ************
 
-* Python 2.6 or 2.7
-* Django 1.6, 1.7 or 1.8
+* Python 2.6, 2.7, 3.4
+* Django 1.6 - 1.9
 * django-reversion
 
 
