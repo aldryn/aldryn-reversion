@@ -15,7 +15,7 @@ from .models import (
 
 
 class SimpleRegisteredAdmin(VersionedPlaceholderAdminMixin, admin.ModelAdmin):
-    pass
+    list_display = ('pk', 'position')
 
 
 class WithTranslationsAdmin(VersionedPlaceholderAdminMixin,

@@ -9,6 +9,7 @@ from reversion.revisions import (
 
 from django.contrib import admin
 from django.core.urlresolvers import reverse, NoReverseMatch
+from django.test import Client
 
 from cms import api
 
@@ -358,6 +359,24 @@ class ReversionRevisionAdminTestCase(AdminUtilsMixin,
         self.simple_registered = SimpleRegistered.objects.get(
             pk=self.simple_registered.pk)
         self.assertEquals(self.simple_registered.position, initial_position)
+
+    def test_admin_create_obj_view(self):
+        """Test that admin create view works and actually creates an object"""
+        obj_count = SimpleRegistered.objects.count()
+        obj = SimpleRegistered.objects.first()
+        url = reverse(
+            'admin:{0}_{1}_{2}'.format(
+                obj._meta.app_label,
+                obj._meta.model_name,
+                'add'))
+        client = Client()
+        # TODO: we can replace this with force_login() on Django 1.9+
+        client.login(username=self.super_user.username,
+                     password=self.super_user_password)
+        position = '777'
+        response = client.post(url, data={'position': position}, follow=True)
+        self.assertEqual(obj_count, SimpleRegistered.objects.count() - 1)
+        self.assertContains(response, position)
 
 
 class AdminUtilsMethodsTestCase(AdminUtilsMixin,
