@@ -182,6 +182,9 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
         if REVERSION_1_9_OR_HIGHER:
             class_super = VersionedPlaceholderAdminMixin
         else:
+            # Prior to django-reversion 1.9.0 there were no way to change
+            # initial comment, but we still need call super to invoke django's
+            # log_addition and avoid django-reversion log_addition.
             class_super = VersionAdmin
         try:
             super(class_super, self).log_addition(request, obj, comment)
