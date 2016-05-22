@@ -7,7 +7,9 @@ import json
 
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
+from django.http.request import QueryDict
 from django.utils.encoding import force_text
+from django.utils.http import urlencode
 
 from reversion.models import Version, Revision
 
@@ -33,6 +35,7 @@ else:
 # CMS 3.2.1 introduced several fixes for reversions.
 # We count on these fixes in some tests.
 CMS_3_2_1 = LooseVersion(cms.__version__) >= LooseVersion('3.2.1')
+CMS_3_3 = LooseVersion(cms.__version__) >= LooseVersion('3.3')
 
 
 class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
@@ -517,21 +520,24 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
             'plugin_language': 'en',
         }
 
-        request = self.get_post_request(data)
+        if CMS_3_3:
+            request = self.get_su_request(post_data={})
+            request.GET = QueryDict(urlencode(data))
+            request._dont_enforce_csrf_checks = True
+        else:
+            request = self.get_post_request(data)
 
         # first plugin
         response = m_pl_admin.add_plugin(request)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(m_pl.cmsplugin_set.count(), 1)
 
         # First version for example obj
         example_obj_v1 = example_obj_versions[0]
 
         # Point to the newly created sample plugin
-        sample_plugin_pk = self.get_plugin_id_from_response(
-            response,
-            path='url',
-        )
+        sample_plugin_pk = m_pl.cmsplugin_set.get().pk
 
         sample_plugin_versions = (
             example_obj_v1.revision.version_set.all()
@@ -551,15 +557,13 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
         response = m_pl_admin.add_plugin(request)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(m_pl.cmsplugin_set.count(), 2)
 
         # Second version for example obj
         example_obj_v2 = example_obj_versions[0]
 
         # Point to the newly created sample plugin
-        sample_plugin_pk = self.get_plugin_id_from_response(
-            response,
-            path='url',
-        )
+        sample_plugin_pk = m_pl.cmsplugin_set.latest('id').pk
 
         sample_plugin_versions = (
             example_obj_v2.revision.version_set.all()
@@ -579,15 +583,13 @@ class ReversionRevisionAdminTestCase(CMSRequestBasedMixin,
         response = m_pl_admin.add_plugin(request)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(m_pl.cmsplugin_set.count(), 3)
 
         # third version for example obj
         example_obj_v3 = example_obj_versions[0]
 
         # Point to the newly created sample plugin
-        sample_plugin_pk = self.get_plugin_id_from_response(
-            response,
-            path='url',
-        )
+        sample_plugin_pk = m_pl.cmsplugin_set.latest('id').pk
 
         sample_plugin_versions = (
             example_obj_v3.revision.version_set.all()
