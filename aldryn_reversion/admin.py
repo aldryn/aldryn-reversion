@@ -128,10 +128,16 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
 
         self._create_aldryn_revision(placeholder, request.user, comment)
 
-    def post_add_plugin(self, request, placeholder, plugin):
+    def post_add_plugin(self, request, *args):
+        # The signature for post_add_plugin
+        # prior to 3.3 was request, placeholder, plugin.
+        # On 3.3 this was changed to request, plugin
+        # to keep consistency with the other hook methods.
+        # So on both plugin is the last argument
+        plugin = args[-1]
         comment_dict = self.get_commen_plugin_info(plugin)
         comment = _('Added plugin #%(plugin_id)s: %(plugin)s') % comment_dict
-        self._create_aldryn_revision(placeholder, request.user, comment)
+        self._create_aldryn_revision(plugin.placeholder, request.user, comment)
 
     def post_edit_plugin(self, request, plugin):
         comment_dict = self.get_commen_plugin_info(plugin)
