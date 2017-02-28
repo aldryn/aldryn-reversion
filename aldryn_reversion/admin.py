@@ -16,8 +16,7 @@ except ImportError:
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.db import transaction
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render_to_response
-from django.template import RequestContext
+from django.shortcuts import get_object_or_404, render
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext as _
 
@@ -307,8 +306,7 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
                 'has_absolute_url': False,
                 'original': obj,
             }
-            return render_to_response(self.revision_confirmation_template,
-                                      context, RequestContext(request))
+            return render(request, self.revision_confirmation_template, context)
 
     @transaction.atomic
     def recover_view(self, request, version_id, extra_context=None):
@@ -429,5 +427,4 @@ class VersionedPlaceholderAdminMixin(PlaceholderAdminMixin, VersionAdmin):
         # if there is no conflicts - add form to context.
         if not conflicts_links_to_restore:
             context['restore_form'] = form
-        return render_to_response(self.recover_confirmation_template,
-                                  context, RequestContext(request))
+        return render(request, self.recover_confirmation_template, context)
