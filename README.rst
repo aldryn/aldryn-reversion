@@ -1,6 +1,8 @@
-################
-Aldryn Reversion
-################
+# WARNING: This addon is now deprecated!
+
+-----
+
+# Aldryn Reversion
 
 |PyPI Version| |Build Status| |Coverage Status| |codeclimate| |requires_io|
 
